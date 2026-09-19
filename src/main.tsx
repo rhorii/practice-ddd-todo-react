@@ -1,7 +1,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './presentation/App'
-import { CreateTask } from './application/CreateTask'
+import { AddTask } from './application/AddTask'
+import { CountRemainingTasks } from './application/CountRemainingTasks'
+import { DeleteTask } from './application/DeleteTask'
 import { RenameTask } from './application/RenameTask'
 import { ToggleTaskCompletion } from './application/ToggleTaskCompletion'
 import { NanoidTaskIdGenerator } from './infrastructure/NanoidTaskIdGenerator'
@@ -14,9 +16,11 @@ const INITIAL_TASKS = [
 ];
 
 // composition root: 各層の実装をここで組み立てる
-const createTask = new CreateTask(new NanoidTaskIdGenerator());
+const addTask = new AddTask(new NanoidTaskIdGenerator());
+const deleteTask = new DeleteTask();
 const renameTask = new RenameTask();
 const toggleTaskCompletion = new ToggleTaskCompletion();
+const countRemainingTasks = new CountRemainingTasks();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -27,9 +31,11 @@ ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <App
       tasks={INITIAL_TASKS}
-      createTask={(name) => createTask.execute(name)}
-      renameTask={(task, newName) => renameTask.execute(task, newName)}
-      toggleTaskCompletion={(task) => toggleTaskCompletion.execute(task)}
+      addTask={(tasks, name) => addTask.execute(tasks, name)}
+      deleteTask={(tasks, id) => deleteTask.execute(tasks, id)}
+      renameTask={(tasks, id, newName) => renameTask.execute(tasks, id, newName)}
+      toggleTaskCompletion={(tasks, id) => toggleTaskCompletion.execute(tasks, id)}
+      countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
     />
   </React.StrictMode>,
 )

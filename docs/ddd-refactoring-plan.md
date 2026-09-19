@@ -34,7 +34,7 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
       → 既存の「空タスクを登録できるバグ」がここで不変条件として直る
 - [x] **T1-4** `Task` エンティティ
       `complete()` / `incomplete()` / `rename()`。同一性は `TaskId`。状態はイミュータブルに更新
-- [ ] **T1-5** `TaskList`（ファーストクラスコレクション）
+- [x] **T1-5** `TaskList`（ファーストクラスコレクション）
       `add` / `remove` / `replace` / `countActive` を移す
 - [ ] **T1-6** `TaskFilter`（All / Active / Completed）を値オブジェクト＋仕様として表現し、
       `FILTER_MAP` を置き換える

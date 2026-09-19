@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { CreateTask } from "../application/CreateTask";
+import { AddTask } from "../application/AddTask";
+import { CountRemainingTasks } from "../application/CountRemainingTasks";
+import { DeleteTask } from "../application/DeleteTask";
 import { RenameTask } from "../application/RenameTask";
 import { ToggleTaskCompletion } from "../application/ToggleTaskCompletion";
 import { TaskId } from "../domain/TaskId";
@@ -36,18 +38,26 @@ class SequentialTaskIdGenerator implements TaskIdGenerator {
 }
 
 function renderApp() {
-  const createTask = new CreateTask(new SequentialTaskIdGenerator());
+  const addTask = new AddTask(new SequentialTaskIdGenerator());
+  const deleteTask = new DeleteTask();
   const renameTask = new RenameTask();
   const toggleTaskCompletion = new ToggleTaskCompletion();
+  const countRemainingTasks = new CountRemainingTasks();
 
   return {
     user: userEvent.setup(),
     ...render(
       <App
         tasks={INITIAL_TASKS}
-        createTask={(name) => createTask.execute(name)}
-        renameTask={(task, newName) => renameTask.execute(task, newName)}
-        toggleTaskCompletion={(task) => toggleTaskCompletion.execute(task)}
+        addTask={(tasks, name) => addTask.execute(tasks, name)}
+        deleteTask={(tasks, id) => deleteTask.execute(tasks, id)}
+        renameTask={(tasks, id, newName) =>
+          renameTask.execute(tasks, id, newName)
+        }
+        toggleTaskCompletion={(tasks, id) =>
+          toggleTaskCompletion.execute(tasks, id)
+        }
+        countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
       />
     ),
   };

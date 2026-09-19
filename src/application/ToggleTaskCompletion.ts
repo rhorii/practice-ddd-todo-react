@@ -1,5 +1,6 @@
+import { TaskId } from "../domain/TaskId";
 import type { TaskDto } from "./TaskDto";
-import { toDto, toTask } from "./TaskMapper";
+import { toDtos, toTaskList } from "./TaskMapper";
 
 /**
  * Task の完了状態を切り替えるユースケース。
@@ -11,9 +12,16 @@ import { toDto, toTask } from "./TaskMapper";
  * T3-1 でリポジトリへの保存まで含む形に発展させる。
  */
 export class ToggleTaskCompletion {
-  execute(task: TaskDto): TaskDto {
-    const current = toTask(task);
+  execute(tasks: readonly TaskDto[], id: string): TaskDto[] {
+    const list = toTaskList(tasks);
+    const target = list.find(TaskId.of(id));
 
-    return toDto(current.isCompleted ? current.incomplete() : current.complete());
+    if (target === undefined) {
+      return toDtos(list);
+    }
+
+    return toDtos(
+      list.replace(target.isCompleted ? target.incomplete() : target.complete())
+    );
   }
 }

@@ -5,14 +5,19 @@ import TaskItem from "./TaskItem";
 import { InvalidTaskNameError } from "../application/InvalidTaskNameError";
 import type { TaskDto } from "../application/TaskDto";
 
+// タスク一覧に対する操作はすべて外から渡される。
+// App は「どう変えるか」を一切知らず、変更後の一覧を受け取って描画するだけ。
 type AppProps = {
   tasks: TaskDto[];
-  // 新しい Task を作る手段は外から渡される。App は TaskId の作り方を知らない。
-  createTask: (name: string) => TaskDto;
-  // 名前の変更も同じく外から渡される。妥当な名前かどうかを App は判断しない。
-  renameTask: (task: TaskDto, newName: string) => TaskDto;
-  // 完了状態をどう切り替えるかも App は決めない。
-  toggleTaskCompletion: (task: TaskDto) => TaskDto;
+  addTask: (tasks: readonly TaskDto[], name: string) => TaskDto[];
+  deleteTask: (tasks: readonly TaskDto[], id: string) => TaskDto[];
+  renameTask: (
+    tasks: readonly TaskDto[],
+    id: string,
+    newName: string
+  ) => TaskDto[];
+  toggleTaskCompletion: (tasks: readonly TaskDto[], id: string) => TaskDto[];
+  countRemainingTasks: (tasks: readonly TaskDto[]) => number;
 };
 
 /**
@@ -55,24 +60,16 @@ function App(props: AppProps) {
   const [filter, setFilter] = useState<FilterName>("All");
 
   function toggleTaskCompletion(id: string) {
-    setTasks(
-      tasks.map((task) =>
-        id === task.id ? props.toggleTaskCompletion(task) : task
-      )
-    );
+    setTasks(props.toggleTaskCompletion(tasks, id));
   }
 
   function deleteTask(id: string) {
-    const remainingTasks = tasks.filter((task) => id !== task.id);
-    setTasks(remainingTasks);
+    setTasks(props.deleteTask(tasks, id));
   }
 
   function renameTask(id: string, newName: string) {
     ignoringInvalidName(() => {
-      const renamedTasks = tasks.map((task) =>
-        id === task.id ? props.renameTask(task, newName) : task
-      );
-      setTasks(renamedTasks);
+      setTasks(props.renameTask(tasks, id, newName));
     });
   }
 
@@ -101,13 +98,13 @@ function App(props: AppProps) {
 
   function addTask(name: string) {
     ignoringInvalidName(() => {
-      setTasks([...tasks, props.createTask(name)]);
+      setTasks(props.addTask(tasks, name));
     });
   }
 
-  // remaining は「未完了の Task の件数」を指す。フィルタの選択状態とは無関係。
-  // docs/ubiquitous-language.md を参照。
-  const remainingCount = tasks.filter((task) => !task.completed).length;
+  // remaining が何を指すかは docs/ubiquitous-language.md にあるドメインの取り決め。
+  // 数え方そのものは TaskList が知っており、App は結果を表示するだけ。
+  const remainingCount = props.countRemainingTasks(tasks);
   const tasksNoun = remainingCount !== 1 ? "tasks" : "task";
   const headingText = `${remainingCount} ${tasksNoun} remaining`;
 

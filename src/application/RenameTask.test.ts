@@ -2,36 +2,52 @@ import { InvalidTaskNameError } from "../domain/TaskName";
 import { RenameTask } from "./RenameTask";
 import type { TaskDto } from "./TaskDto";
 
-const EAT: TaskDto = { id: "task-1", name: "Eat", completed: false };
+const TASKS: TaskDto[] = [
+  { id: "task-1", name: "Eat", completed: true },
+  { id: "task-2", name: "Sleep", completed: false },
+];
+
+const rename = (tasks: readonly TaskDto[], id: string, newName: string) =>
+  new RenameTask().execute(tasks, id, newName);
 
 describe("RenameTask", () => {
-  it("新しい名前を持つ Task を返す", () => {
-    expect(new RenameTask().execute(EAT, "Brunch").name).toBe("Brunch");
+  it("指定した Task の名前を変える", () => {
+    expect(rename(TASKS, "task-1", "Brunch")[0]?.name).toBe("Brunch");
+  });
+
+  it("他の Task には影響しない", () => {
+    expect(rename(TASKS, "task-1", "Brunch")[1]?.name).toBe("Sleep");
   });
 
   it("名前以外は変えない", () => {
-    const renamed = new RenameTask().execute(
-      { ...EAT, completed: true },
-      "Brunch"
-    );
+    const renamed = rename(TASKS, "task-1", "Brunch")[0];
 
-    expect(renamed.id).toBe("task-1");
-    expect(renamed.completed).toBe(true);
+    expect(renamed?.id).toBe("task-1");
+    expect(renamed?.completed).toBe(true);
   });
 
-  it("元の Task を書き換えない", () => {
-    new RenameTask().execute(EAT, "Brunch");
-
-    expect(EAT.name).toBe("Eat");
+  it("並び順を保つ", () => {
+    expect(rename(TASKS, "task-1", "Brunch").map((task) => task.id)).toEqual([
+      "task-1",
+      "task-2",
+    ]);
   });
 
   it("前後の空白を取り除いた名前にする", () => {
-    expect(new RenameTask().execute(EAT, "  Brunch  ").name).toBe("Brunch");
+    expect(rename(TASKS, "task-1", "  Brunch  ")[0]?.name).toBe("Brunch");
   });
 
   it("空の名前には変えられない", () => {
-    expect(() => new RenameTask().execute(EAT, "   ")).toThrow(
-      InvalidTaskNameError
-    );
+    expect(() => rename(TASKS, "task-1", "   ")).toThrow(InvalidTaskNameError);
+  });
+
+  it("存在しない TaskId を指定しても何も起きない", () => {
+    expect(rename(TASKS, "task-999", "Brunch")).toEqual(TASKS);
+  });
+
+  it("元のリストを書き換えない", () => {
+    rename(TASKS, "task-1", "Brunch");
+
+    expect(TASKS[0]?.name).toBe("Eat");
   });
 });

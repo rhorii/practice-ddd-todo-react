@@ -1,5 +1,6 @@
 import { Task } from "../domain/Task";
 import { TaskId } from "../domain/TaskId";
+import { TaskList } from "../domain/TaskList";
 import { TaskName } from "../domain/TaskName";
 import type { TaskDto } from "./TaskDto";
 
@@ -28,4 +29,12 @@ export function toTask(dto: TaskDto): Task {
     TaskName.of(dto.name),
     dto.completed
   );
+}
+
+export function toDtos(tasks: TaskList): TaskDto[] {
+  return tasks.toArray().map(toDto);
+}
+
+export function toTaskList(dtos: readonly TaskDto[]): TaskList {
+  return TaskList.of(dtos.map(toTask));
 }
