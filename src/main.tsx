@@ -1,6 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './presentation/App'
+import { CreateTask } from './application/CreateTask'
+import { NanoidTaskIdGenerator } from './infrastructure/NanoidTaskIdGenerator'
 import './index.css'
 
 const INITIAL_TASKS = [
@@ -9,6 +11,9 @@ const INITIAL_TASKS = [
   { id: "task-2", name: "Repeat", completed: false },
 ];
 
+// composition root: 各層の実装をここで組み立てる
+const createTask = new CreateTask(new NanoidTaskIdGenerator());
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Root element #root not found");
@@ -16,6 +21,6 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <App tasks={INITIAL_TASKS} />
+    <App tasks={INITIAL_TASKS} createTask={(name) => createTask.execute(name)} />
   </React.StrictMode>,
 )

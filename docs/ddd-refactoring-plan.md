@@ -27,7 +27,7 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
 
 - [x] **T1-1** ユビキタス言語の整理
       `Todo` / `task` / `TodoMatic` の名前ゆれを `Task` に統一し、用語集を残す
-- [ ] **T1-2** `TaskId` 値オブジェクト
+- [x] **T1-2** `TaskId` 値オブジェクト
       Branded Type で生の string との取り違えを防ぐ。nanoid への依存をドメインから追い出す
 - [ ] **T1-3** `TaskName` 値オブジェクト
       trim・空文字禁止・最大長。private constructor + 静的ファクトリ

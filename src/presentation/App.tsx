@@ -2,18 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import Form from "./Form";
 import FilterButton from "./FilterButton";
 import TaskItem from "./TaskItem";
-import { nanoid } from "nanoid";
-
-// T0-3 時点では App の props が受け取る生のタスクの形をそのまま型にしている。
-// T1-4 で Task エンティティに置き換わるまでの足場。
-type TaskData = {
-  id: string;
-  name: string;
-  completed: boolean;
-};
+import type { TaskDto } from "../application/TaskDto";
 
 type AppProps = {
-  tasks: TaskData[];
+  tasks: TaskDto[];
+  // 新しい Task を作る手段は外から渡される。App は TaskId の作り方を知らない。
+  createTask: (name: string) => TaskDto;
 };
 
 function usePrevious<T>(value: T): T | null {
@@ -26,8 +20,8 @@ function usePrevious<T>(value: T): T | null {
 
 const FILTER_MAP = {
   All: () => true,
-  Active: (task: TaskData) => !task.completed,
-  Completed: (task: TaskData) => task.completed,
+  Active: (task: TaskDto) => !task.completed,
+  Completed: (task: TaskDto) => task.completed,
 };
 
 type FilterName = keyof typeof FILTER_MAP;
@@ -94,8 +88,7 @@ function App(props: AppProps) {
   ));
 
   function addTask(name: string) {
-    const newTask = { id: "task-" + nanoid(), name: name, completed: false };
-    setTasks([...tasks, newTask]);
+    setTasks([...tasks, props.createTask(name)]);
   }
 
   // remaining は「未完了の Task の件数」を指す。フィルタの選択状態とは無関係。

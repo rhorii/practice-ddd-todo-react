@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { TaskDto } from "../application/TaskDto";
 import App from "./App";
 
 // 特性テスト (characterization test)
@@ -18,10 +19,23 @@ const INITIAL_TASKS = [
   { id: "todo-2", name: "Repeat", completed: false },
 ];
 
+// App に渡す「Task を作る手段」のテスト用実装。
+// 本番では CreateTask + NanoidTaskIdGenerator が組み立てられるが、
+// ここでは ID を決定的にしたいので連番で返す。
+function createSequentialTaskFactory() {
+  let count = 0;
+  return (name: string): TaskDto => {
+    count += 1;
+    return { id: `task-new-${count}`, name, completed: false };
+  };
+}
+
 function renderApp() {
   return {
     user: userEvent.setup(),
-    ...render(<App tasks={INITIAL_TASKS} />),
+    ...render(
+      <App tasks={INITIAL_TASKS} createTask={createSequentialTaskFactory()} />
+    ),
   };
 }
 
