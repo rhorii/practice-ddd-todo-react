@@ -6,13 +6,13 @@ import {
   type FormEvent,
 } from "react";
 
-type TodoProps = {
+type TaskItemProps = {
   id: string;
   name: string;
   completed: boolean;
-  toggleTaskCompleted: (id: string) => void;
+  toggleTaskCompletion: (id: string) => void;
   deleteTask: (id: string) => void;
-  editTask: (id: string, newName: string) => void;
+  renameTask: (id: string, newName: string) => void;
 };
 
 function usePrevious<T>(value: T): T | null {
@@ -23,14 +23,14 @@ function usePrevious<T>(value: T): T | null {
   return ref.current;
 }
 
-function Todo(props: TodoProps) {
-  const [isEditing, setEditing] = useState(false);
+function TaskItem(props: TaskItemProps) {
+  const [isRenaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState("");
 
-  const editFieldRef = useRef<HTMLInputElement>(null);
-  const editButtonRef = useRef<HTMLButtonElement>(null);
+  const renameFieldRef = useRef<HTMLInputElement>(null);
+  const renameButtonRef = useRef<HTMLButtonElement>(null);
 
-  const wasEditing = usePrevious(isEditing);
+  const wasRenaming = usePrevious(isRenaming);
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     setNewName(event.target.value);
@@ -41,12 +41,12 @@ function Todo(props: TodoProps) {
   // working through MDN's React tutorial.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    props.editTask(props.id, newName);
+    props.renameTask(props.id, newName);
     setNewName("");
-    setEditing(false);
+    setRenaming(false);
   }
 
-  const editingTemplate = (
+  const renamingTemplate = (
     <form className="stack-small" onSubmit={handleSubmit}>
       <div className="form-group">
         <label className="todo-label" htmlFor={props.id}>
@@ -58,14 +58,14 @@ function Todo(props: TodoProps) {
           type="text"
           value={newName}
           onChange={handleChange}
-          ref={editFieldRef}
+          ref={renameFieldRef}
         />
       </div>
       <div className="btn-group">
         <button
           type="button"
           className="btn todo-cancel"
-          onClick={() => setEditing(false)}>
+          onClick={() => setRenaming(false)}>
           Cancel
           <span className="visually-hidden">renaming {props.name}</span>
         </button>
@@ -84,7 +84,7 @@ function Todo(props: TodoProps) {
           id={props.id}
           type="checkbox"
           defaultChecked={props.completed}
-          onChange={() => props.toggleTaskCompleted(props.id)}
+          onChange={() => props.toggleTaskCompletion(props.id)}
         />
         <label className="todo-label" htmlFor={props.id}>
           {props.name}
@@ -95,9 +95,9 @@ function Todo(props: TodoProps) {
           type="button"
           className="btn"
           onClick={() => {
-            setEditing(true);
+            setRenaming(true);
           }}
-          ref={editButtonRef}>
+          ref={renameButtonRef}>
           Edit <span className="visually-hidden">{props.name}</span>
         </button>
         <button
@@ -111,14 +111,14 @@ function Todo(props: TodoProps) {
   );
 
   useEffect(() => {
-    if (!wasEditing && isEditing) {
-      editFieldRef.current?.focus();
-    } else if (wasEditing && !isEditing) {
-      editButtonRef.current?.focus();
+    if (!wasRenaming && isRenaming) {
+      renameFieldRef.current?.focus();
+    } else if (wasRenaming && !isRenaming) {
+      renameButtonRef.current?.focus();
     }
-  }, [wasEditing, isEditing]);
+  }, [wasRenaming, isRenaming]);
 
-  return <li className="todo">{isEditing ? editingTemplate : viewTemplate}</li>;
+  return <li className="todo">{isRenaming ? renamingTemplate : viewTemplate}</li>;
 }
 
-export default Todo;
+export default TaskItem;

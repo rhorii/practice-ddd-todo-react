@@ -59,12 +59,11 @@ describe("初期表示", () => {
     expect(screen.getByRole("checkbox", { name: "Repeat" })).not.toBeChecked();
   });
 
-  it("見出しに表示中のタスク件数を出す", () => {
+  it("見出しに未完了のタスク件数を出す", () => {
     renderApp();
 
-    // 未完了の残件数ではなく、表示中のタスク件数であることに注意。
-    // Eat は完了済みだが 3 件と数えられている。
-    expect(heading()).toHaveTextContent("3 tasks remaining");
+    // remaining は未完了の件数。Eat は完了済みなので数えない。
+    expect(heading()).toHaveTextContent("2 tasks remaining");
   });
 
   it("All フィルタが選択された状態で始まる", () => {
@@ -101,13 +100,13 @@ describe("タスクの追加", () => {
     expect(newTaskInput()).toHaveValue("");
   });
 
-  it("見出しの件数を更新する", async () => {
+  it("見出しの未完了件数を増やす", async () => {
     const { user } = renderApp();
 
     await user.type(newTaskInput(), "Walk");
     await user.click(screen.getByRole("button", { name: "Add" }));
 
-    expect(heading()).toHaveTextContent("4 tasks remaining");
+    expect(heading()).toHaveTextContent("3 tasks remaining");
   });
 });
 
@@ -127,10 +126,26 @@ describe("完了状態の切り替え", () => {
 
     expect(screen.getByRole("checkbox", { name: "Eat" })).not.toBeChecked();
   });
+
+  it("完了にすると remaining の件数が減る", async () => {
+    const { user } = renderApp();
+
+    await user.click(screen.getByRole("checkbox", { name: "Sleep" }));
+
+    expect(heading()).toHaveTextContent("1 task remaining");
+  });
+
+  it("未完了に戻すと remaining の件数が増える", async () => {
+    const { user } = renderApp();
+
+    await user.click(screen.getByRole("checkbox", { name: "Eat" }));
+
+    expect(heading()).toHaveTextContent("3 tasks remaining");
+  });
 });
 
-describe("タスク名の編集", () => {
-  it("Edit を押すと編集フォームを開く", async () => {
+describe("タスク名の変更 (rename)", () => {
+  it("Edit を押すと名前の変更フォームを開く", async () => {
     const { user } = renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
@@ -141,7 +156,7 @@ describe("タスク名の編集", () => {
     expect(screen.queryByRole("checkbox", { name: "Eat" })).not.toBeInTheDocument();
   });
 
-  it("編集フォームの入力欄は現在の名前ではなく空で始まる", async () => {
+  it("変更フォームの入力欄は現在の名前ではなく空で始まる", async () => {
     const { user } = renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
@@ -161,7 +176,7 @@ describe("タスク名の編集", () => {
     expect(taskItems()).toHaveLength(3);
   });
 
-  it("Cancel を押すと名前を変えずに編集を終える", async () => {
+  it("Cancel を押すと名前を変えずに変更を終える", async () => {
     const { user } = renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
@@ -202,7 +217,6 @@ describe("フィルタ", () => {
 
     expect(taskItems()).toHaveLength(2);
     expect(screen.queryByRole("checkbox", { name: "Eat" })).not.toBeInTheDocument();
-    expect(heading()).toHaveTextContent("2 tasks remaining");
   });
 
   it("Completed は完了済みのタスクだけを表示する", async () => {
@@ -212,7 +226,6 @@ describe("フィルタ", () => {
 
     expect(taskItems()).toHaveLength(1);
     expect(screen.getByRole("checkbox", { name: "Eat" })).toBeInTheDocument();
-    expect(heading()).toHaveTextContent("1 task remaining");
   });
 
   it("All はすべてのタスクを表示する", async () => {
@@ -222,6 +235,16 @@ describe("フィルタ", () => {
     await user.click(filterButton("All"));
 
     expect(taskItems()).toHaveLength(3);
+  });
+
+  it("表示対象を絞っても remaining の件数は変わらない", async () => {
+    const { user } = renderApp();
+
+    await user.click(filterButton("Completed"));
+    expect(heading()).toHaveTextContent("2 tasks remaining");
+
+    await user.click(filterButton("Active"));
+    expect(heading()).toHaveTextContent("2 tasks remaining");
   });
 
   it("選択中のフィルタだけを押下状態にする", async () => {
@@ -244,10 +267,10 @@ describe("既知のバグ: 空の名前を許してしまう", () => {
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     expect(taskItems()).toHaveLength(4);
-    expect(heading()).toHaveTextContent("4 tasks remaining");
+    expect(heading()).toHaveTextContent("3 tasks remaining");
   });
 
-  it("名前を空にする編集も保存できてしまう", async () => {
+  it("名前を空にする変更も保存できてしまう", async () => {
     const { user } = renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));

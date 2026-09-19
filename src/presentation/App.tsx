@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import Form from "./Form";
 import FilterButton from "./FilterButton";
-import Todo from "./Todo";
+import TaskItem from "./TaskItem";
 import { nanoid } from "nanoid";
 
 // T0-3 時点では App の props が受け取る生のタスクの形をそのまま型にしている。
@@ -39,11 +39,11 @@ function App(props: AppProps) {
   const [tasks, setTasks] = useState(props.tasks);
   const [filter, setFilter] = useState<FilterName>("All");
 
-  function toggleTaskCompleted(id: string) {
+  function toggleTaskCompletion(id: string) {
     const updatedTasks = tasks.map((task) => {
-      // if this task has the same ID as the edited task
+      // if this task has the same ID as the target task
       if (id === task.id) {
-        // use object spread to make a new obkect
+        // use object spread to make a new object
         // whose `completed` prop has been inverted
         return { ...task, completed: !task.completed };
       }
@@ -57,34 +57,34 @@ function App(props: AppProps) {
     setTasks(remainingTasks);
   }
 
-  function editTask(id: string, newName: string) {
-    const editedTaskList = tasks.map((task) => {
-      // if this task has the same ID as the edited task
+  function renameTask(id: string, newName: string) {
+    const renamedTasks = tasks.map((task) => {
+      // if this task has the same ID as the target task
       if (id === task.id) {
         // Copy the task and update its name
         return { ...task, name: newName };
       }
-      // Return the original task if it's not the edited task
+      // Return the original task if it's not the renamed task
       return task;
     });
-    setTasks(editedTaskList);
+    setTasks(renamedTasks);
   }
 
-  const taskList = tasks
+  const visibleTaskItems = tasks
     ?.filter(FILTER_MAP[filter])
     .map((task) => (
-      <Todo
+      <TaskItem
         id={task.id}
         name={task.name}
         completed={task.completed}
         key={task.id}
-        toggleTaskCompleted={toggleTaskCompleted}
+        toggleTaskCompletion={toggleTaskCompletion}
         deleteTask={deleteTask}
-        editTask={editTask}
+        renameTask={renameTask}
       />
     ));
 
-  const filterList = FILTER_NAMES.map((name) => (
+  const filterButtons = FILTER_NAMES.map((name) => (
     <FilterButton
       key={name}
       name={name}
@@ -94,12 +94,15 @@ function App(props: AppProps) {
   ));
 
   function addTask(name: string) {
-    const newTask = { id: "todo-" + nanoid(), name: name, completed: false };
+    const newTask = { id: "task-" + nanoid(), name: name, completed: false };
     setTasks([...tasks, newTask]);
   }
 
-  const tasksNoun = taskList.length !== 1 ? "tasks" : "task";
-  const headingText = `${taskList.length} ${tasksNoun} remaining`;
+  // remaining は「未完了の Task の件数」を指す。フィルタの選択状態とは無関係。
+  // docs/ubiquitous-language.md を参照。
+  const remainingCount = tasks.filter((task) => !task.completed).length;
+  const tasksNoun = remainingCount !== 1 ? "tasks" : "task";
+  const headingText = `${remainingCount} ${tasksNoun} remaining`;
 
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
   const prevTaskLength = usePrevious(tasks.length);
@@ -114,7 +117,7 @@ function App(props: AppProps) {
     <div className="todoapp stack-large">
       <h1>TodoMatic</h1>
       <Form addTask={addTask} />
-      <div className="filters btn-group stack-exception">{filterList}</div>
+      <div className="filters btn-group stack-exception">{filterButtons}</div>
       <h2 id="list-heading" tabIndex={-1} ref={listHeadingRef}>
         {headingText}
       </h2>
@@ -123,7 +126,7 @@ function App(props: AppProps) {
         className="todo-list stack-large stack-exception"
         role="list"
       >
-        {taskList}
+        {visibleTaskItems}
       </ul>
     </div>
   );
