@@ -18,7 +18,7 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
       `strict: true` は必須。`noUncheckedIndexedAccess` も有効にする
 - [x] **T0-4** レイヤーのディレクトリを作る
       （`src/domain` / `src/application` / `src/infrastructure` / `src/presentation`）
-- [ ] **T0-5** ESLint の `import/no-restricted-paths` で依存方向（内向きのみ）を機械的に固定する
+- [x] **T0-5** ESLint の `import/no-restricted-paths` で依存方向（内向きのみ）を機械的に固定する
 
 > T0-2 を T0-3 より先に置くのは意図的。型なしの状態で振る舞いを固定しておけば、
 > TypeScript 移行そのものが「テストが通ったまま型が付く」安全な一歩になる。
