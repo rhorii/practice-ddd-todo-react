@@ -1,6 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { TaskDto } from "../application/TaskDto";
+import { CreateTask } from "../application/CreateTask";
+import { RenameTask } from "../application/RenameTask";
+import { TaskId } from "../domain/TaskId";
+import type { TaskIdGenerator } from "../domain/TaskIdGenerator";
 import App from "./App";
 
 // 特性テスト (characterization test)
@@ -19,22 +22,30 @@ const INITIAL_TASKS = [
   { id: "todo-2", name: "Repeat", completed: false },
 ];
 
-// App に渡す「Task を作る手段」のテスト用実装。
-// 本番では CreateTask + NanoidTaskIdGenerator が組み立てられるが、
-// ここでは ID を決定的にしたいので連番で返す。
-function createSequentialTaskFactory() {
-  let count = 0;
-  return (name: string): TaskDto => {
-    count += 1;
-    return { id: `task-new-${count}`, name, completed: false };
-  };
+// 差し替えるのは ID の発行方法だけにする。
+// ユースケース自体は本番と同じものを組み立てないと、特性テストが
+// 本物のアプリではなく偽物を検証することになってしまう。
+class SequentialTaskIdGenerator implements TaskIdGenerator {
+  private count = 0;
+
+  generate(): TaskId {
+    this.count += 1;
+    return TaskId.of(`task-new-${this.count}`);
+  }
 }
 
 function renderApp() {
+  const createTask = new CreateTask(new SequentialTaskIdGenerator());
+  const renameTask = new RenameTask();
+
   return {
     user: userEvent.setup(),
     ...render(
-      <App tasks={INITIAL_TASKS} createTask={createSequentialTaskFactory()} />
+      <App
+        tasks={INITIAL_TASKS}
+        createTask={(name) => createTask.execute(name)}
+        renameTask={(task, newName) => renameTask.execute(task, newName)}
+      />
     ),
   };
 }
@@ -271,26 +282,60 @@ describe("フィルタ", () => {
   });
 });
 
-// 現時点で存在するバグ。あるべき姿ではなく現状を記録している。
-// T1-3 で TaskName 値オブジェクトを導入すると不変条件によって塞がれ、
-// ここのテストは意図的に赤くなる。そのときに期待値を書き換える。
-describe("既知のバグ: 空の名前を許してしまう", () => {
-  it("名前が空のままでもタスクを追加できてしまう", async () => {
+// T0-2 では「空の名前を許してしまう」バグとして現状を記録していた。
+// T1-3 で TaskName 値オブジェクトを導入し、不変条件によって塞がれた振る舞いを
+// ここで固定し直す。UI 側に検証を足したのではなく、不正な TaskName が
+// そもそも作れないことによって塞がっている。
+describe("空の名前は受け付けない", () => {
+  it("名前が空のままではタスクを追加できない", async () => {
     const { user } = renderApp();
 
     await user.click(screen.getByRole("button", { name: "Add" }));
 
-    expect(taskItems()).toHaveLength(4);
-    expect(heading()).toHaveTextContent("3 tasks remaining");
+    expect(taskItems()).toHaveLength(3);
+    expect(heading()).toHaveTextContent("2 tasks remaining");
   });
 
-  it("名前を空にする変更も保存できてしまう", async () => {
+  it("空白だけの名前でもタスクを追加できない", async () => {
+    const { user } = renderApp();
+
+    await user.type(newTaskInput(), "   ");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(taskItems()).toHaveLength(3);
+  });
+
+  it("名前を空にする変更は保存されない", async () => {
     const { user } = renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
     await user.click(saveButton("Eat"));
 
-    expect(screen.queryByRole("checkbox", { name: "Eat" })).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Eat" })).toBeInTheDocument();
     expect(taskItems()).toHaveLength(3);
+  });
+});
+
+describe("名前の正規化", () => {
+  it("前後の空白を取り除いて追加する", async () => {
+    const { user } = renderApp();
+
+    await user.type(newTaskInput(), "   Walk   ");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(screen.getByRole("checkbox", { name: "Walk" })).toBeInTheDocument();
+  });
+
+  it("前後の空白を取り除いて名前を変更する", async () => {
+    const { user } = renderApp();
+
+    await user.click(screen.getByRole("button", { name: "Edit Eat" }));
+    await user.type(
+      screen.getByRole("textbox", { name: "New name for Eat" }),
+      "   Brunch   "
+    );
+    await user.click(saveButton("Eat"));
+
+    expect(screen.getByRole("checkbox", { name: "Brunch" })).toBeInTheDocument();
   });
 });

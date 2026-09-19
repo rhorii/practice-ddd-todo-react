@@ -29,7 +29,7 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
       `Todo` / `task` / `TodoMatic` の名前ゆれを `Task` に統一し、用語集を残す
 - [x] **T1-2** `TaskId` 値オブジェクト
       Branded Type で生の string との取り違えを防ぐ。nanoid への依存をドメインから追い出す
-- [ ] **T1-3** `TaskName` 値オブジェクト
+- [x] **T1-3** `TaskName` 値オブジェクト
       trim・空文字禁止・最大長。private constructor + 静的ファクトリ
       → 既存の「空タスクを登録できるバグ」がここで不変条件として直る
 - [ ] **T1-4** `Task` エンティティ

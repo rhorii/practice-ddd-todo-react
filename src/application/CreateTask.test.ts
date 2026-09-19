@@ -1,5 +1,6 @@
 import { TaskId } from "../domain/TaskId";
 import type { TaskIdGenerator } from "../domain/TaskIdGenerator";
+import { InvalidTaskNameError } from "../domain/TaskName";
 import { CreateTask } from "./CreateTask";
 
 // TaskIdGenerator がインターフェースであるおかげで、
@@ -36,5 +37,17 @@ describe("CreateTask", () => {
     const createTask = new CreateTask(new SequentialTaskIdGenerator());
 
     expect(createTask.execute("Eat").completed).toBe(false);
+  });
+
+  it("前後の空白を取り除いた名前にする", () => {
+    const createTask = new CreateTask(new SequentialTaskIdGenerator());
+
+    expect(createTask.execute("  Eat  ").name).toBe("Eat");
+  });
+
+  it("空の名前では作れない", () => {
+    const createTask = new CreateTask(new SequentialTaskIdGenerator());
+
+    expect(() => createTask.execute("   ")).toThrow(InvalidTaskNameError);
   });
 });

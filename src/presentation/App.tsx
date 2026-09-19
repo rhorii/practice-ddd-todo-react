@@ -2,13 +2,32 @@ import { useState, useRef, useEffect } from "react";
 import Form from "./Form";
 import FilterButton from "./FilterButton";
 import TaskItem from "./TaskItem";
+import { InvalidTaskNameError } from "../application/InvalidTaskNameError";
 import type { TaskDto } from "../application/TaskDto";
 
 type AppProps = {
   tasks: TaskDto[];
   // 新しい Task を作る手段は外から渡される。App は TaskId の作り方を知らない。
   createTask: (name: string) => TaskDto;
+  // 名前の変更も同じく外から渡される。妥当な名前かどうかを App は判断しない。
+  renameTask: (task: TaskDto, newName: string) => TaskDto;
 };
+
+/**
+ * 不正な名前が入力されたときは、その操作を行わない。
+ *
+ * T4-3 でユーザーにエラーメッセージを表示する。それまでは入力を無視するに留める。
+ * 不変条件違反以外の例外は握りつぶさず、そのまま投げ直す。
+ */
+function ignoringInvalidName(operation: () => void): void {
+  try {
+    operation();
+  } catch (error) {
+    if (!(error instanceof InvalidTaskNameError)) {
+      throw error;
+    }
+  }
+}
 
 function usePrevious<T>(value: T): T | null {
   const ref = useRef<T | null>(null);
@@ -52,16 +71,12 @@ function App(props: AppProps) {
   }
 
   function renameTask(id: string, newName: string) {
-    const renamedTasks = tasks.map((task) => {
-      // if this task has the same ID as the target task
-      if (id === task.id) {
-        // Copy the task and update its name
-        return { ...task, name: newName };
-      }
-      // Return the original task if it's not the renamed task
-      return task;
+    ignoringInvalidName(() => {
+      const renamedTasks = tasks.map((task) =>
+        id === task.id ? props.renameTask(task, newName) : task
+      );
+      setTasks(renamedTasks);
     });
-    setTasks(renamedTasks);
   }
 
   const visibleTaskItems = tasks
@@ -88,7 +103,9 @@ function App(props: AppProps) {
   ));
 
   function addTask(name: string) {
-    setTasks([...tasks, props.createTask(name)]);
+    ignoringInvalidName(() => {
+      setTasks([...tasks, props.createTask(name)]);
+    });
   }
 
   // remaining は「未完了の Task の件数」を指す。フィルタの選択状態とは無関係。

@@ -54,8 +54,16 @@ module.exports = {
 	plugins: ['@typescript-eslint', 'react-refresh', 'import'],
 	overrides: [
 		{
-			// テストファイルでは Vitest のグローバル (vite.config.ts の test.globals) を許可する
+			// テストファイルでは Vitest のグローバル (vite.config.ts の test.globals) を許可する。
+			//
+			// あわせて層の境界も解除する。import の制約は「本番コードの依存グラフ」を
+			// 守るためのものであり、テストはその依存グラフの一部ではない。
+			// テストの仕事はむしろ各層を組み立てて検証することなので、
+			// ここを縛ると特性テストが本番と違う組み立てを検証する羽目になる。
 			files: ['**/*.test.{ts,tsx}', 'src/setupTests.ts'],
+			rules: {
+				'import/no-restricted-paths': 'off',
+			},
 			globals: {
 				describe: 'readonly',
 				it: 'readonly',
