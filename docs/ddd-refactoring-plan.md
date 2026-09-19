@@ -10,7 +10,7 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
 
 ## Phase 0: 土台づくり（リファクタリングの安全網）
 
-- [ ] **T0-1** Vitest + @testing-library/react + jsdom を導入し、`yarn test` を通す
+- [x] **T0-1** Vitest + @testing-library/react + jsdom を導入し、`yarn test` を通す
 - [ ] **T0-2** 特性テスト（characterization test）で現状の振る舞いを固定する
       （追加・完了切替・編集・削除・フィルタ・件数表示）
 - [ ] **T0-3** TypeScript を導入する
