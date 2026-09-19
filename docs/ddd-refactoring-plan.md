@@ -16,7 +16,7 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
 - [x] **T0-3** TypeScript を導入する
       （`typescript` / `@types/*` / `tsconfig.json` / vite 設定、`.jsx` → `.tsx` へ機械的に移行）
       `strict: true` は必須。`noUncheckedIndexedAccess` も有効にする
-- [ ] **T0-4** レイヤーのディレクトリを作る
+- [x] **T0-4** レイヤーのディレクトリを作る
       （`src/domain` / `src/application` / `src/infrastructure` / `src/presentation`）
 - [ ] **T0-5** ESLint の `import/no-restricted-paths` で依存方向（内向きのみ）を機械的に固定する
 

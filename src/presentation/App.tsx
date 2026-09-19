@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import Form from "./components/Form";
-import FilterButton from "./components/FilterButton";
-import Todo from "./components/Todo";
+import Form from "./Form";
+import FilterButton from "./FilterButton";
+import Todo from "./Todo";
 import { nanoid } from "nanoid";
 
 // T0-3 時点では App の props が受け取る生のタスクの形をそのまま型にしている。
