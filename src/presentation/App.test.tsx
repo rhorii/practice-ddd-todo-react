@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CreateTask } from "../application/CreateTask";
 import { RenameTask } from "../application/RenameTask";
+import { ToggleTaskCompletion } from "../application/ToggleTaskCompletion";
 import { TaskId } from "../domain/TaskId";
 import type { TaskIdGenerator } from "../domain/TaskIdGenerator";
 import App from "./App";
@@ -37,6 +38,7 @@ class SequentialTaskIdGenerator implements TaskIdGenerator {
 function renderApp() {
   const createTask = new CreateTask(new SequentialTaskIdGenerator());
   const renameTask = new RenameTask();
+  const toggleTaskCompletion = new ToggleTaskCompletion();
 
   return {
     user: userEvent.setup(),
@@ -45,6 +47,7 @@ function renderApp() {
         tasks={INITIAL_TASKS}
         createTask={(name) => createTask.execute(name)}
         renameTask={(task, newName) => renameTask.execute(task, newName)}
+        toggleTaskCompletion={(task) => toggleTaskCompletion.execute(task)}
       />
     ),
   };

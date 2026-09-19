@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './presentation/App'
 import { CreateTask } from './application/CreateTask'
 import { RenameTask } from './application/RenameTask'
+import { ToggleTaskCompletion } from './application/ToggleTaskCompletion'
 import { NanoidTaskIdGenerator } from './infrastructure/NanoidTaskIdGenerator'
 import './index.css'
 
@@ -15,6 +16,7 @@ const INITIAL_TASKS = [
 // composition root: 各層の実装をここで組み立てる
 const createTask = new CreateTask(new NanoidTaskIdGenerator());
 const renameTask = new RenameTask();
+const toggleTaskCompletion = new ToggleTaskCompletion();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -27,6 +29,7 @@ ReactDOM.createRoot(rootElement).render(
       tasks={INITIAL_TASKS}
       createTask={(name) => createTask.execute(name)}
       renameTask={(task, newName) => renameTask.execute(task, newName)}
+      toggleTaskCompletion={(task) => toggleTaskCompletion.execute(task)}
     />
   </React.StrictMode>,
 )

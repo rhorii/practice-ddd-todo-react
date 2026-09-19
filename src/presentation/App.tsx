@@ -11,6 +11,8 @@ type AppProps = {
   createTask: (name: string) => TaskDto;
   // 名前の変更も同じく外から渡される。妥当な名前かどうかを App は判断しない。
   renameTask: (task: TaskDto, newName: string) => TaskDto;
+  // 完了状態をどう切り替えるかも App は決めない。
+  toggleTaskCompletion: (task: TaskDto) => TaskDto;
 };
 
 /**
@@ -53,16 +55,11 @@ function App(props: AppProps) {
   const [filter, setFilter] = useState<FilterName>("All");
 
   function toggleTaskCompletion(id: string) {
-    const updatedTasks = tasks.map((task) => {
-      // if this task has the same ID as the target task
-      if (id === task.id) {
-        // use object spread to make a new object
-        // whose `completed` prop has been inverted
-        return { ...task, completed: !task.completed };
-      }
-      return task;
-    });
-    setTasks(updatedTasks);
+    setTasks(
+      tasks.map((task) =>
+        id === task.id ? props.toggleTaskCompletion(task) : task
+      )
+    );
   }
 
   function deleteTask(id: string) {

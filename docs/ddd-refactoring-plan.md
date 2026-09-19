@@ -32,7 +32,7 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
 - [x] **T1-3** `TaskName` 値オブジェクト
       trim・空文字禁止・最大長。private constructor + 静的ファクトリ
       → 既存の「空タスクを登録できるバグ」がここで不変条件として直る
-- [ ] **T1-4** `Task` エンティティ
+- [x] **T1-4** `Task` エンティティ
       `complete()` / `incomplete()` / `rename()`。同一性は `TaskId`。状態はイミュータブルに更新
 - [ ] **T1-5** `TaskList`（ファーストクラスコレクション）
       `add` / `remove` / `replace` / `countActive` を移す
