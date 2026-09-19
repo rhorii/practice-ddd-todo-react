@@ -13,7 +13,7 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
 - [x] **T0-1** Vitest + @testing-library/react + jsdom を導入し、`yarn test` を通す
 - [x] **T0-2** 特性テスト（characterization test）で現状の振る舞いを固定する
       （追加・完了切替・編集・削除・フィルタ・件数表示）
-- [ ] **T0-3** TypeScript を導入する
+- [x] **T0-3** TypeScript を導入する
       （`typescript` / `@types/*` / `tsconfig.json` / vite 設定、`.jsx` → `.tsx` へ機械的に移行）
       `strict: true` は必須。`noUncheckedIndexedAccess` も有効にする
 - [ ] **T0-4** レイヤーのディレクトリを作る

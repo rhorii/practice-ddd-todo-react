@@ -1,18 +1,22 @@
-import { useState } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 
-function Form(props) {
+type FormProps = {
+  addTask: (name: string) => void;
+};
+
+function Form(props: FormProps) {
   const [name, setName] = useState('');
 
   // NOTE: As written, this function has a bug: it doesn't prevent the user
   // from submitting an empty form. This is left as an exercise for developers
   // working through MDN's React tutorial.
-  function handleSubmit(event) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     props.addTask(name);
     setName("");
   }
 
-  function handleChange(event) {
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
     setName(event.target.value);
   }
 

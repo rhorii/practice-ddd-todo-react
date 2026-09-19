@@ -1,20 +1,22 @@
 module.exports = {
 	root: true,
 	env: { browser: true, es2020: true },
+	parser: '@typescript-eslint/parser',
+	parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
 	extends: [
 		'eslint:recommended',
+		'plugin:@typescript-eslint/recommended',
 		'plugin:react/recommended',
 		'plugin:react/jsx-runtime',
 		'plugin:react-hooks/recommended',
 	],
 	ignorePatterns: ['dist', '.eslintrc.cjs'],
-	parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
 	settings: { react: { version: '18.2' } },
-	plugins: ['react-refresh'],
-	// テストファイルでは Vitest のグローバル (vite.config.js の test.globals) を許可する
+	plugins: ['@typescript-eslint', 'react-refresh'],
+	// テストファイルでは Vitest のグローバル (vite.config.ts の test.globals) を許可する
 	overrides: [
 		{
-			files: ['**/*.test.{js,jsx}', 'src/setupTests.js'],
+			files: ['**/*.test.{ts,tsx}', 'src/setupTests.ts'],
 			globals: {
 				describe: 'readonly',
 				it: 'readonly',

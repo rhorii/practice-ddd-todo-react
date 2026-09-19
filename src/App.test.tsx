@@ -37,15 +37,16 @@ const newTaskInput = () =>
 // 要素ごとに空白が落ちて "ShowAlltasks" のように語が繋がる。
 // 現状をそのまま写し取りつつ、将来この繋がりが解消されても壊れないように
 // 空白の有無を緩く扱う。
-const looseName = (...words) => new RegExp("^" + words.join("\\s*") + "$");
+const looseName = (...words: string[]) =>
+  new RegExp("^" + words.join("\\s*") + "$");
 
-const filterButton = (name) =>
+const filterButton = (name: string) =>
   screen.getByRole("button", { name: looseName("Show", name, "tasks") });
 
-const saveButton = (name) =>
+const saveButton = (name: string) =>
   screen.getByRole("button", { name: looseName("Save", "new name for " + name) });
 
-const cancelButton = (name) =>
+const cancelButton = (name: string) =>
   screen.getByRole("button", { name: looseName("Cancel", "renaming " + name) });
 
 describe("初期表示", () => {
@@ -82,8 +83,12 @@ describe("タスクの追加", () => {
 
     expect(taskItems()).toHaveLength(4);
     expect(screen.getByRole("checkbox", { name: "Walk" })).not.toBeChecked();
+    // noUncheckedIndexedAccess により at(-1) は undefined を含むため、
+    // 末尾要素の存在を明示してから絞り込む
+    const lastItem = taskItems().at(-1);
+    expect(lastItem).toBeDefined();
     expect(
-      within(taskItems().at(-1)).getByRole("checkbox", { name: "Walk" })
+      within(lastItem as HTMLElement).getByRole("checkbox", { name: "Walk" })
     ).toBeInTheDocument();
   });
 
