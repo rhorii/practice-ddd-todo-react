@@ -3,6 +3,7 @@ import Form from "./Form";
 import FilterButton from "./FilterButton";
 import TaskItem from "./TaskItem";
 import { InvalidTaskNameError } from "../application/InvalidTaskNameError";
+import type { TaskFilterName } from "../application/ListTaskFilters";
 import type { TaskDto } from "../application/TaskDto";
 
 // タスク一覧に対する操作はすべて外から渡される。
@@ -18,6 +19,11 @@ type AppProps = {
   ) => TaskDto[];
   toggleTaskCompletion: (tasks: readonly TaskDto[], id: string) => TaskDto[];
   countRemainingTasks: (tasks: readonly TaskDto[]) => number;
+  listTasks: (
+    tasks: readonly TaskDto[],
+    filterName: TaskFilterName
+  ) => TaskDto[];
+  filterNames: readonly TaskFilterName[];
 };
 
 /**
@@ -44,20 +50,9 @@ function usePrevious<T>(value: T): T | null {
   return ref.current;
 }
 
-const FILTER_MAP = {
-  All: () => true,
-  Active: (task: TaskDto) => !task.completed,
-  Completed: (task: TaskDto) => task.completed,
-};
-
-type FilterName = keyof typeof FILTER_MAP;
-
-// Object.keys は string[] を返すため、ここだけはキー名の型を補う必要がある
-const FILTER_NAMES = Object.keys(FILTER_MAP) as FilterName[];
-
 function App(props: AppProps) {
   const [tasks, setTasks] = useState(props.tasks);
-  const [filter, setFilter] = useState<FilterName>("All");
+  const [filter, setFilter] = useState<TaskFilterName>("All");
 
   function toggleTaskCompletion(id: string) {
     setTasks(props.toggleTaskCompletion(tasks, id));
@@ -73,8 +68,8 @@ function App(props: AppProps) {
     });
   }
 
-  const visibleTaskItems = tasks
-    ?.filter(FILTER_MAP[filter])
+  const visibleTaskItems = props
+    .listTasks(tasks, filter)
     .map((task) => (
       <TaskItem
         id={task.id}
@@ -87,7 +82,7 @@ function App(props: AppProps) {
       />
     ));
 
-  const filterButtons = FILTER_NAMES.map((name) => (
+  const filterButtons = props.filterNames.map((name) => (
     <FilterButton
       key={name}
       name={name}

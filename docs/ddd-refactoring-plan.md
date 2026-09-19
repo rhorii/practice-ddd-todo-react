@@ -36,7 +36,7 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
       `complete()` / `incomplete()` / `rename()`。同一性は `TaskId`。状態はイミュータブルに更新
 - [x] **T1-5** `TaskList`（ファーストクラスコレクション）
       `add` / `remove` / `replace` / `countActive` を移す
-- [ ] **T1-6** `TaskFilter`（All / Active / Completed）を値オブジェクト＋仕様として表現し、
+- [x] **T1-6** `TaskFilter`（All / Active / Completed）を値オブジェクト＋仕様として表現し、
       `FILTER_MAP` を置き換える
 
 > Phase 1 はボトムアップで進める。先に Repository やユースケースを作ると、

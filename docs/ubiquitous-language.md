@@ -11,7 +11,7 @@
 | **TaskId** | Task を一意に識別する値。Task の同一性はこれだけで決まる | `TaskId` |
 | **TaskName** | Task が何をするものかを表す名前。空であってはならない | `TaskName` |
 | **TaskList** | Task の集まり。単なる配列ではなく、集合としての振る舞いを持つ | `TaskList` |
-| **TaskFilter** | TaskList から表示対象を選び出す条件 | `TaskFilter`（T1-6） |
+| **TaskFilter** | TaskList から表示対象を選び出す条件 | `TaskFilter` |
 
 ## Task の状態と操作
 

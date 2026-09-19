@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { AddTask } from "../application/AddTask";
 import { CountRemainingTasks } from "../application/CountRemainingTasks";
 import { DeleteTask } from "../application/DeleteTask";
+import { ListTaskFilters } from "../application/ListTaskFilters";
+import { ListTasks } from "../application/ListTasks";
 import { RenameTask } from "../application/RenameTask";
 import { ToggleTaskCompletion } from "../application/ToggleTaskCompletion";
 import { TaskId } from "../domain/TaskId";
@@ -43,6 +45,7 @@ function renderApp() {
   const renameTask = new RenameTask();
   const toggleTaskCompletion = new ToggleTaskCompletion();
   const countRemainingTasks = new CountRemainingTasks();
+  const listTasks = new ListTasks();
 
   return {
     user: userEvent.setup(),
@@ -58,6 +61,8 @@ function renderApp() {
           toggleTaskCompletion.execute(tasks, id)
         }
         countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
+        listTasks={(tasks, filterName) => listTasks.execute(tasks, filterName)}
+        filterNames={new ListTaskFilters().execute()}
       />
     ),
   };

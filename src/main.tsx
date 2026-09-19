@@ -4,6 +4,8 @@ import App from './presentation/App'
 import { AddTask } from './application/AddTask'
 import { CountRemainingTasks } from './application/CountRemainingTasks'
 import { DeleteTask } from './application/DeleteTask'
+import { ListTaskFilters } from './application/ListTaskFilters'
+import { ListTasks } from './application/ListTasks'
 import { RenameTask } from './application/RenameTask'
 import { ToggleTaskCompletion } from './application/ToggleTaskCompletion'
 import { NanoidTaskIdGenerator } from './infrastructure/NanoidTaskIdGenerator'
@@ -21,6 +23,8 @@ const deleteTask = new DeleteTask();
 const renameTask = new RenameTask();
 const toggleTaskCompletion = new ToggleTaskCompletion();
 const countRemainingTasks = new CountRemainingTasks();
+const listTasks = new ListTasks();
+const filterNames = new ListTaskFilters().execute();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -36,6 +40,8 @@ ReactDOM.createRoot(rootElement).render(
       renameTask={(tasks, id, newName) => renameTask.execute(tasks, id, newName)}
       toggleTaskCompletion={(tasks, id) => toggleTaskCompletion.execute(tasks, id)}
       countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
+      listTasks={(tasks, filterName) => listTasks.execute(tasks, filterName)}
+      filterNames={filterNames}
     />
   </React.StrictMode>,
 )
