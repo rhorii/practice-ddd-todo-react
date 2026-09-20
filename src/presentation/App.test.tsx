@@ -5,10 +5,13 @@ import { CountRemainingTasks } from "../application/CountRemainingTasks";
 import { DeleteTask } from "../application/DeleteTask";
 import { ListTaskFilters } from "../application/ListTaskFilters";
 import { ListTasks } from "../application/ListTasks";
+import { LoadTasks } from "../application/LoadTasks";
 import { RenameTask } from "../application/RenameTask";
+import { toTaskList } from "../application/TaskMapper";
 import { ToggleTaskCompletion } from "../application/ToggleTaskCompletion";
 import { TaskId } from "../domain/TaskId";
 import type { TaskIdGenerator } from "../domain/TaskIdGenerator";
+import { InMemoryTaskRepository } from "../infrastructure/InMemoryTaskRepository";
 import App from "./App";
 
 // 特性テスト (characterization test)
@@ -39,33 +42,34 @@ class SequentialTaskIdGenerator implements TaskIdGenerator {
   }
 }
 
-function renderApp() {
-  const addTask = new AddTask(new SequentialTaskIdGenerator());
-  const deleteTask = new DeleteTask();
-  const renameTask = new RenameTask();
-  const toggleTaskCompletion = new ToggleTaskCompletion();
+async function renderApp() {
+  const repository = new InMemoryTaskRepository(toTaskList(INITIAL_TASKS));
+
+  const loadTasks = new LoadTasks(repository);
+  const addTask = new AddTask(repository, new SequentialTaskIdGenerator());
+  const deleteTask = new DeleteTask(repository);
+  const renameTask = new RenameTask(repository);
+  const toggleTaskCompletion = new ToggleTaskCompletion(repository);
   const countRemainingTasks = new CountRemainingTasks();
   const listTasks = new ListTasks();
 
-  return {
-    user: userEvent.setup(),
-    ...render(
-      <App
-        tasks={INITIAL_TASKS}
-        addTask={(tasks, name) => addTask.execute(tasks, name)}
-        deleteTask={(tasks, id) => deleteTask.execute(tasks, id)}
-        renameTask={(tasks, id, newName) =>
-          renameTask.execute(tasks, id, newName)
-        }
-        toggleTaskCompletion={(tasks, id) =>
-          toggleTaskCompletion.execute(tasks, id)
-        }
-        countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
-        listTasks={(tasks, filterName) => listTasks.execute(tasks, filterName)}
-        filterNames={new ListTaskFilters().execute()}
-      />
-    ),
-  };
+  const rendered = render(
+    <App
+      loadTasks={() => loadTasks.execute()}
+      addTask={(name) => addTask.execute(name)}
+      deleteTask={(id) => deleteTask.execute(id)}
+      renameTask={(id, newName) => renameTask.execute(id, newName)}
+      toggleTaskCompletion={(id) => toggleTaskCompletion.execute(id)}
+      countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
+      listTasks={(tasks, filterName) => listTasks.execute(tasks, filterName)}
+      filterNames={new ListTaskFilters().execute()}
+    />
+  );
+
+  // 一覧の読み出しは非同期なので、描画が落ち着くまで待つ
+  await screen.findAllByRole("listitem");
+
+  return { user: userEvent.setup(), ...rendered };
 }
 
 const taskItems = () => screen.getAllByRole("listitem");
@@ -93,8 +97,8 @@ const cancelButton = (name: string) =>
   screen.getByRole("button", { name: looseName("Cancel", "renaming " + name) });
 
 describe("初期表示", () => {
-  it("渡されたタスクをすべて表示する", () => {
-    renderApp();
+  it("渡されたタスクをすべて表示する", async () => {
+    await renderApp();
 
     expect(taskItems()).toHaveLength(3);
     expect(screen.getByRole("checkbox", { name: "Eat" })).toBeChecked();
@@ -102,15 +106,15 @@ describe("初期表示", () => {
     expect(screen.getByRole("checkbox", { name: "Repeat" })).not.toBeChecked();
   });
 
-  it("見出しに未完了のタスク件数を出す", () => {
-    renderApp();
+  it("見出しに未完了のタスク件数を出す", async () => {
+    await renderApp();
 
     // remaining は未完了の件数。Eat は完了済みなので数えない。
     expect(heading()).toHaveTextContent("2 tasks remaining");
   });
 
-  it("All フィルタが選択された状態で始まる", () => {
-    renderApp();
+  it("All フィルタが選択された状態で始まる", async () => {
+    await renderApp();
 
     expect(filterButton("All")).toHaveAttribute("aria-pressed", "true");
   });
@@ -118,7 +122,7 @@ describe("初期表示", () => {
 
 describe("タスクの追加", () => {
   it("入力した名前のタスクをリストの末尾に追加する", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.type(newTaskInput(), "Walk");
     await user.click(screen.getByRole("button", { name: "Add" }));
@@ -135,7 +139,7 @@ describe("タスクの追加", () => {
   });
 
   it("追加後に入力欄を空にする", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.type(newTaskInput(), "Walk");
     await user.click(screen.getByRole("button", { name: "Add" }));
@@ -144,7 +148,7 @@ describe("タスクの追加", () => {
   });
 
   it("見出しの未完了件数を増やす", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.type(newTaskInput(), "Walk");
     await user.click(screen.getByRole("button", { name: "Add" }));
@@ -155,7 +159,7 @@ describe("タスクの追加", () => {
 
 describe("完了状態の切り替え", () => {
   it("未完了のタスクを完了にする", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("checkbox", { name: "Sleep" }));
 
@@ -163,7 +167,7 @@ describe("完了状態の切り替え", () => {
   });
 
   it("完了済みのタスクを未完了に戻す", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("checkbox", { name: "Eat" }));
 
@@ -171,7 +175,7 @@ describe("完了状態の切り替え", () => {
   });
 
   it("完了にすると remaining の件数が減る", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("checkbox", { name: "Sleep" }));
 
@@ -179,7 +183,7 @@ describe("完了状態の切り替え", () => {
   });
 
   it("未完了に戻すと remaining の件数が増える", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("checkbox", { name: "Eat" }));
 
@@ -189,7 +193,7 @@ describe("完了状態の切り替え", () => {
 
 describe("タスク名の変更 (rename)", () => {
   it("Edit を押すと名前の変更フォームを開く", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
 
@@ -200,7 +204,7 @@ describe("タスク名の変更 (rename)", () => {
   });
 
   it("変更フォームの入力欄は現在の名前ではなく空で始まる", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
 
@@ -208,7 +212,7 @@ describe("タスク名の変更 (rename)", () => {
   });
 
   it("Save を押すと新しい名前で置き換える", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
     await user.type(screen.getByRole("textbox", { name: "New name for Eat" }), "Brunch");
@@ -220,7 +224,7 @@ describe("タスク名の変更 (rename)", () => {
   });
 
   it("Cancel を押すと名前を変えずに変更を終える", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
     await user.type(screen.getByRole("textbox", { name: "New name for Eat" }), "Brunch");
@@ -233,7 +237,7 @@ describe("タスク名の変更 (rename)", () => {
 
 describe("タスクの削除", () => {
   it("押したタスクだけをリストから取り除く", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Delete Sleep" }));
 
@@ -244,7 +248,7 @@ describe("タスクの削除", () => {
   });
 
   it("削除後に見出しへフォーカスを移す", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Delete Sleep" }));
 
@@ -254,7 +258,7 @@ describe("タスクの削除", () => {
 
 describe("フィルタ", () => {
   it("Active は未完了のタスクだけを表示する", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(filterButton("Active"));
 
@@ -263,7 +267,7 @@ describe("フィルタ", () => {
   });
 
   it("Completed は完了済みのタスクだけを表示する", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(filterButton("Completed"));
 
@@ -272,7 +276,7 @@ describe("フィルタ", () => {
   });
 
   it("All はすべてのタスクを表示する", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(filterButton("Completed"));
     await user.click(filterButton("All"));
@@ -281,7 +285,7 @@ describe("フィルタ", () => {
   });
 
   it("表示対象を絞っても remaining の件数は変わらない", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(filterButton("Completed"));
     expect(heading()).toHaveTextContent("2 tasks remaining");
@@ -291,7 +295,7 @@ describe("フィルタ", () => {
   });
 
   it("選択中のフィルタだけを押下状態にする", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(filterButton("Active"));
 
@@ -306,7 +310,7 @@ describe("フィルタ", () => {
 // そもそも作れないことによって塞がっている。
 describe("空の名前は受け付けない", () => {
   it("名前が空のままではタスクを追加できない", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Add" }));
 
@@ -315,7 +319,7 @@ describe("空の名前は受け付けない", () => {
   });
 
   it("空白だけの名前でもタスクを追加できない", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.type(newTaskInput(), "   ");
     await user.click(screen.getByRole("button", { name: "Add" }));
@@ -324,7 +328,7 @@ describe("空の名前は受け付けない", () => {
   });
 
   it("名前を空にする変更は保存されない", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
     await user.click(saveButton("Eat"));
@@ -336,7 +340,7 @@ describe("空の名前は受け付けない", () => {
 
 describe("名前の正規化", () => {
   it("前後の空白を取り除いて追加する", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.type(newTaskInput(), "   Walk   ");
     await user.click(screen.getByRole("button", { name: "Add" }));
@@ -345,7 +349,7 @@ describe("名前の正規化", () => {
   });
 
   it("前後の空白を取り除いて名前を変更する", async () => {
-    const { user } = renderApp();
+    const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
     await user.type(

@@ -6,8 +6,11 @@ import { CountRemainingTasks } from './application/CountRemainingTasks'
 import { DeleteTask } from './application/DeleteTask'
 import { ListTaskFilters } from './application/ListTaskFilters'
 import { ListTasks } from './application/ListTasks'
+import { LoadTasks } from './application/LoadTasks'
 import { RenameTask } from './application/RenameTask'
+import { toTaskList } from './application/TaskMapper'
 import { ToggleTaskCompletion } from './application/ToggleTaskCompletion'
+import { InMemoryTaskRepository } from './infrastructure/InMemoryTaskRepository'
 import { NanoidTaskIdGenerator } from './infrastructure/NanoidTaskIdGenerator'
 import './index.css'
 
@@ -17,11 +20,15 @@ const INITIAL_TASKS = [
   { id: "task-2", name: "Repeat", completed: false },
 ];
 
-// composition root: 各層の実装をここで組み立てる
-const addTask = new AddTask(new NanoidTaskIdGenerator());
-const deleteTask = new DeleteTask();
-const renameTask = new RenameTask();
-const toggleTaskCompletion = new ToggleTaskCompletion();
+// composition root: 各層の実装をここで組み立てる。
+// 状態の置き場所はリポジトリであり、初期データもリポジトリに与える。
+const taskRepository = new InMemoryTaskRepository(toTaskList(INITIAL_TASKS));
+
+const loadTasks = new LoadTasks(taskRepository);
+const addTask = new AddTask(taskRepository, new NanoidTaskIdGenerator());
+const deleteTask = new DeleteTask(taskRepository);
+const renameTask = new RenameTask(taskRepository);
+const toggleTaskCompletion = new ToggleTaskCompletion(taskRepository);
 const countRemainingTasks = new CountRemainingTasks();
 const listTasks = new ListTasks();
 const filterNames = new ListTaskFilters().execute();
@@ -34,11 +41,11 @@ if (!rootElement) {
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <App
-      tasks={INITIAL_TASKS}
-      addTask={(tasks, name) => addTask.execute(tasks, name)}
-      deleteTask={(tasks, id) => deleteTask.execute(tasks, id)}
-      renameTask={(tasks, id, newName) => renameTask.execute(tasks, id, newName)}
-      toggleTaskCompletion={(tasks, id) => toggleTaskCompletion.execute(tasks, id)}
+      loadTasks={() => loadTasks.execute()}
+      addTask={(name) => addTask.execute(name)}
+      deleteTask={(id) => deleteTask.execute(id)}
+      renameTask={(id, newName) => renameTask.execute(id, newName)}
+      toggleTaskCompletion={(id) => toggleTaskCompletion.execute(id)}
       countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
       listTasks={(tasks, filterName) => listTasks.execute(tasks, filterName)}
       filterNames={filterNames}

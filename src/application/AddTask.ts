@@ -1,26 +1,35 @@
 import { Task } from "../domain/Task";
 import type { TaskIdGenerator } from "../domain/TaskIdGenerator";
 import { TaskName } from "../domain/TaskName";
+import type { TaskRepository } from "../domain/TaskRepository";
 import type { TaskDto } from "./TaskDto";
-import { toDtos, toTaskList } from "./TaskMapper";
+import { toDtos } from "./TaskMapper";
 
 /**
  * Task を追加するユースケース。
  *
- * ID の発行方法を自分では決めず、TaskIdGenerator を受け取る。
- * 名前の妥当性も完了状態の初期値もここでは決めない。前者は TaskName の
- * 不変条件が、後者は Task.create が引き受ける。リストへの加え方は TaskList が知る。
- * この層の仕事は手順の調整だけ。
+ * 保存されている一覧を読み、Task を加え、保存し直す。この「読む・変える・書く」の
+ * 手順の調整がこの層の仕事であり、ルールそのものは持たない。名前の妥当性は
+ * TaskName が、完了状態の初期値は Task.create が、加え方は TaskList が引き受ける。
  *
- * T3-1 でリポジトリへの保存まで含む形に発展させ、タスク一覧を引数で受け取る
- * 必要をなくす。
+ * 名前の検査を読み出しより先に行うのは、不正な入力のときに ID を無駄に発行せず、
+ * 保存も行わないため。
  */
 export class AddTask {
-  constructor(private readonly taskIdGenerator: TaskIdGenerator) {}
+  constructor(
+    private readonly tasks: TaskRepository,
+    private readonly taskIdGenerator: TaskIdGenerator
+  ) {}
 
-  execute(tasks: readonly TaskDto[], name: string): TaskDto[] {
-    const task = Task.create(this.taskIdGenerator.generate(), TaskName.of(name));
+  async execute(name: string): Promise<TaskDto[]> {
+    const taskName = TaskName.of(name);
+    const current = await this.tasks.load();
+    const updated = current.add(
+      Task.create(this.taskIdGenerator.generate(), taskName)
+    );
 
-    return toDtos(toTaskList(tasks).add(task));
+    await this.tasks.save(updated);
+
+    return toDtos(updated);
   }
 }

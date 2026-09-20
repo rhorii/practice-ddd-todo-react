@@ -51,7 +51,7 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
 ## Phase 2: 永続化の抽象化
 
 - [x] **T2-1** `TaskRepository` インターフェースをドメイン層に定義する（依存性逆転）
-- [ ] **T2-2** `InMemoryTaskRepository` を infrastructure に実装し、テストを差し替える
+- [x] **T2-2** `InMemoryTaskRepository` を infrastructure に実装し、テストを差し替える
 - [ ] **T2-3** `LocalStorageTaskRepository` を追加し、永続化モデル ⇄ ドメインモデルの Mapper を挟む
       → 層分離の効果を体感する回
 

@@ -7,17 +7,16 @@ import type { TaskFilterName } from "../application/ListTaskFilters";
 import type { TaskDto } from "../application/TaskDto";
 
 // タスク一覧に対する操作はすべて外から渡される。
-// App は「どう変えるか」を一切知らず、変更後の一覧を受け取って描画するだけ。
+// App は「どう変えるか」も「どこに保存されるか」も知らず、
+// 操作の結果として返ってきた一覧を描画するだけ。
 type AppProps = {
-  tasks: TaskDto[];
-  addTask: (tasks: readonly TaskDto[], name: string) => TaskDto[];
-  deleteTask: (tasks: readonly TaskDto[], id: string) => TaskDto[];
-  renameTask: (
-    tasks: readonly TaskDto[],
-    id: string,
-    newName: string
-  ) => TaskDto[];
-  toggleTaskCompletion: (tasks: readonly TaskDto[], id: string) => TaskDto[];
+  loadTasks: () => Promise<TaskDto[]>;
+  addTask: (name: string) => Promise<TaskDto[]>;
+  deleteTask: (id: string) => Promise<TaskDto[]>;
+  renameTask: (id: string, newName: string) => Promise<TaskDto[]>;
+  toggleTaskCompletion: (id: string) => Promise<TaskDto[]>;
+  // 絞り込みと件数は保存内容を変えない「見せ方」の操作なので、
+  // 画面が既に持っている一覧に対して同期的に適用する。
   countRemainingTasks: (tasks: readonly TaskDto[]) => number;
   listTasks: (
     tasks: readonly TaskDto[],
@@ -32,9 +31,11 @@ type AppProps = {
  * T4-3 でユーザーにエラーメッセージを表示する。それまでは入力を無視するに留める。
  * 不変条件違反以外の例外は握りつぶさず、そのまま投げ直す。
  */
-function ignoringInvalidName(operation: () => void): void {
+async function ignoringInvalidName(
+  operation: () => Promise<void>
+): Promise<void> {
   try {
-    operation();
+    await operation();
   } catch (error) {
     if (!(error instanceof InvalidTaskNameError)) {
       throw error;
@@ -51,20 +52,37 @@ function usePrevious<T>(value: T): T | null {
 }
 
 function App(props: AppProps) {
-  const [tasks, setTasks] = useState(props.tasks);
+  const [tasks, setTasks] = useState<TaskDto[]>([]);
   const [filter, setFilter] = useState<TaskFilterName>("All");
 
-  function toggleTaskCompletion(id: string) {
-    setTasks(props.toggleTaskCompletion(tasks, id));
+  const { loadTasks } = props;
+
+  // 保存されている一覧を最初に読み出す。以降の一覧は各操作の戻り値として得られる。
+  useEffect(() => {
+    let abandoned = false;
+
+    void loadTasks().then((loaded) => {
+      if (!abandoned) {
+        setTasks(loaded);
+      }
+    });
+
+    return () => {
+      abandoned = true;
+    };
+  }, [loadTasks]);
+
+  async function toggleTaskCompletion(id: string) {
+    setTasks(await props.toggleTaskCompletion(id));
   }
 
-  function deleteTask(id: string) {
-    setTasks(props.deleteTask(tasks, id));
+  async function deleteTask(id: string) {
+    setTasks(await props.deleteTask(id));
   }
 
-  function renameTask(id: string, newName: string) {
-    ignoringInvalidName(() => {
-      setTasks(props.renameTask(tasks, id, newName));
+  async function renameTask(id: string, newName: string) {
+    await ignoringInvalidName(async () => {
+      setTasks(await props.renameTask(id, newName));
     });
   }
 
@@ -91,9 +109,9 @@ function App(props: AppProps) {
     />
   ));
 
-  function addTask(name: string) {
-    ignoringInvalidName(() => {
-      setTasks(props.addTask(tasks, name));
+  async function addTask(name: string) {
+    await ignoringInvalidName(async () => {
+      setTasks(await props.addTask(name));
     });
   }
 
