@@ -60,7 +60,7 @@ module.exports = {
 			// 守るためのものであり、テストはその依存グラフの一部ではない。
 			// テストの仕事はむしろ各層を組み立てて検証することなので、
 			// ここを縛ると特性テストが本番と違う組み立てを検証する羽目になる。
-			files: ['**/*.test.{ts,tsx}', 'src/setupTests.ts'],
+			files: ['**/*.test.{ts,tsx}', '**/*Contract.ts', 'src/setupTests.ts'],
 			rules: {
 				'import/no-restricted-paths': 'off',
 			},

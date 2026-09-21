@@ -9,8 +9,9 @@ import { ListTasks } from './application/ListTasks'
 import { LoadTasks } from './application/LoadTasks'
 import { RenameTask } from './application/RenameTask'
 import { toTaskList } from './application/TaskMapper'
+import type { TaskRepository } from './domain/TaskRepository'
 import { ToggleTaskCompletion } from './application/ToggleTaskCompletion'
-import { InMemoryTaskRepository } from './infrastructure/InMemoryTaskRepository'
+import { LocalStorageTaskRepository } from './infrastructure/LocalStorageTaskRepository'
 import { NanoidTaskIdGenerator } from './infrastructure/NanoidTaskIdGenerator'
 import './index.css'
 
@@ -22,7 +23,17 @@ const INITIAL_TASKS = [
 
 // composition root: 各層の実装をここで組み立てる。
 // 状態の置き場所はリポジトリであり、初期データもリポジトリに与える。
-const taskRepository = new InMemoryTaskRepository(toTaskList(INITIAL_TASKS));
+//
+// 保存先を LocalStorageTaskRepository に差し替えても、domain 層と application 層は
+// 一行も変わらない。これが層を分けたことの見返りになる。
+const taskRepository = new LocalStorageTaskRepository();
+
+/** 保存されている内容が空のときだけ、見本のタスクを入れる。 */
+async function seedInitialTasks(repository: TaskRepository): Promise<void> {
+  if ((await repository.load()).isEmpty) {
+    await repository.save(toTaskList(INITIAL_TASKS));
+  }
+}
 
 const loadTasks = new LoadTasks(taskRepository);
 const addTask = new AddTask(taskRepository, new NanoidTaskIdGenerator());
@@ -38,17 +49,19 @@ if (!rootElement) {
   throw new Error("Root element #root not found");
 }
 
-ReactDOM.createRoot(rootElement).render(
-  <React.StrictMode>
-    <App
-      loadTasks={() => loadTasks.execute()}
-      addTask={(name) => addTask.execute(name)}
-      deleteTask={(id) => deleteTask.execute(id)}
-      renameTask={(id, newName) => renameTask.execute(id, newName)}
-      toggleTaskCompletion={(id) => toggleTaskCompletion.execute(id)}
-      countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
-      listTasks={(tasks, filterName) => listTasks.execute(tasks, filterName)}
-      filterNames={filterNames}
-    />
-  </React.StrictMode>,
-)
+void seedInitialTasks(taskRepository).then(() => {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <App
+        loadTasks={() => loadTasks.execute()}
+        addTask={(name) => addTask.execute(name)}
+        deleteTask={(id) => deleteTask.execute(id)}
+        renameTask={(id, newName) => renameTask.execute(id, newName)}
+        toggleTaskCompletion={(id) => toggleTaskCompletion.execute(id)}
+        countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
+        listTasks={(tasks, filterName) => listTasks.execute(tasks, filterName)}
+        filterNames={filterNames}
+      />
+    </React.StrictMode>,
+  )
+});
