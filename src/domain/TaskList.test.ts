@@ -1,6 +1,6 @@
 import { Task } from "./Task";
 import { TaskId } from "./TaskId";
-import { TaskList } from "./TaskList";
+import { DuplicateTaskError, TaskList } from "./TaskList";
 import { TaskName } from "./TaskName";
 
 const task = (id: string, name: string, completed = false) =>
@@ -10,7 +10,12 @@ const EAT = task("task-1", "Eat", true);
 const SLEEP = task("task-2", "Sleep");
 const REPEAT = task("task-3", "Repeat");
 
+const id = (value: string) => TaskId.of(value);
 const threeTasks = () => TaskList.of([EAT, SLEEP, REPEAT]);
+const names = (tasks: TaskList) => tasks.toArray().map((t) => t.name.value);
+const ids = (tasks: TaskList) => tasks.toArray().map((t) => t.id.value);
+const completedOf = (tasks: TaskList, taskId: string) =>
+  tasks.isTaskCompleted(id(taskId));
 
 describe("TaskList", () => {
   describe("生成", () => {
@@ -32,14 +37,31 @@ describe("TaskList", () => {
     });
   });
 
+  // 集約ルートとして守るべき不変条件。
+  // Task 単体では判断できず、集合でなければ守れない。
+  describe("同じ TaskId を2つ持たない", () => {
+    it("重複する Task からは作れない", () => {
+      expect(() => TaskList.of([EAT, EAT])).toThrow(DuplicateTaskError);
+    });
+
+    it("名前や完了状態が違っても TaskId が同じなら作れない", () => {
+      expect(() =>
+        TaskList.of([EAT, EAT.rename(TaskName.of("Brunch"))])
+      ).toThrow(DuplicateTaskError);
+    });
+
+    it("既にある TaskId は追加できない", () => {
+      expect(() => threeTasks().add(EAT)).toThrow(DuplicateTaskError);
+    });
+
+    it("どの TaskId が重複しているかを伝える", () => {
+      expect(() => threeTasks().add(EAT)).toThrow("task-1");
+    });
+  });
+
   describe("追加", () => {
     it("末尾に Task を加えた新しいリストを返す", () => {
-      const added = TaskList.of([EAT]).add(SLEEP);
-
-      expect(added.toArray().map((t) => t.id.value)).toEqual([
-        "task-1",
-        "task-2",
-      ]);
+      expect(ids(TaskList.of([EAT]).add(SLEEP))).toEqual(["task-1", "task-2"]);
     });
 
     it("元のリストを変更しない", () => {
@@ -53,63 +75,104 @@ describe("TaskList", () => {
 
   describe("削除", () => {
     it("指定した TaskId の Task だけを取り除く", () => {
-      const removed = threeTasks().remove(TaskId.of("task-2"));
-
-      expect(removed.toArray().map((t) => t.id.value)).toEqual([
+      expect(ids(threeTasks().remove(id("task-2")))).toEqual([
         "task-1",
         "task-3",
       ]);
     });
 
     it("存在しない TaskId を指定しても何も起きない", () => {
-      expect(threeTasks().remove(TaskId.of("task-999")).size).toBe(3);
+      expect(threeTasks().remove(id("task-999")).size).toBe(3);
     });
 
     it("元のリストを変更しない", () => {
       const list = threeTasks();
 
-      list.remove(TaskId.of("task-2"));
+      list.remove(id("task-2"));
 
       expect(list.size).toBe(3);
     });
   });
 
-  describe("差し替え", () => {
-    it("同じ TaskId を持つ Task を置き換える", () => {
-      const replaced = threeTasks().replace(SLEEP.complete());
+  // 内側の Task への変更は、必ず集約ルートのメソッドを通す。
+  describe("名前の変更", () => {
+    it("指定した Task の名前を変える", () => {
+      const renamed = threeTasks().renameTask(id("task-2"), TaskName.of("Nap"));
 
-      expect(replaced.find(TaskId.of("task-2"))?.isCompleted).toBe(true);
+      expect(names(renamed)).toEqual(["Eat", "Nap", "Repeat"]);
     });
 
-    it("並び順を保つ", () => {
-      const replaced = threeTasks().replace(SLEEP.rename(TaskName.of("Nap")));
+    it("完了状態は変えない", () => {
+      const renamed = threeTasks().renameTask(
+        id("task-1"),
+        TaskName.of("Brunch")
+      );
 
-      expect(replaced.toArray().map((t) => t.name.value)).toEqual([
-        "Eat",
-        "Nap",
-        "Repeat",
-      ]);
+      expect(completedOf(renamed, "task-1")).toBe(true);
     });
 
-    it("存在しない TaskId の Task を渡しても何も起きない", () => {
-      const stranger = task("task-999", "Unknown");
+    it("存在しない TaskId を指定しても何も起きない", () => {
+      const list = threeTasks();
 
-      expect(threeTasks().replace(stranger).size).toBe(3);
+      expect(names(list.renameTask(id("task-999"), TaskName.of("Nap")))).toEqual(
+        names(list)
+      );
+    });
+
+    it("元のリストを変更しない", () => {
+      const list = threeTasks();
+
+      list.renameTask(id("task-2"), TaskName.of("Nap"));
+
+      expect(names(list)).toEqual(["Eat", "Sleep", "Repeat"]);
     });
   });
 
-  describe("検索", () => {
-    it("TaskId で Task を取り出せる", () => {
-      expect(threeTasks().find(TaskId.of("task-2"))?.name.value).toBe("Sleep");
+  describe("完了状態の変更", () => {
+    it("未完了の Task を完了にする", () => {
+      expect(completedOf(threeTasks().completeTask(id("task-2")), "task-2")).toBe(
+        true
+      );
     });
 
-    it("存在しなければ undefined を返す", () => {
-      expect(threeTasks().find(TaskId.of("task-999"))).toBeUndefined();
+    it("完了した Task を未完了に戻す", () => {
+      expect(
+        completedOf(threeTasks().incompleteTask(id("task-1")), "task-1")
+      ).toBe(false);
     });
 
+    it("並び順を保つ", () => {
+      expect(ids(threeTasks().completeTask(id("task-2")))).toEqual([
+        "task-1",
+        "task-2",
+        "task-3",
+      ]);
+    });
+
+    it("他の Task には影響しない", () => {
+      const completed = threeTasks().completeTask(id("task-2"));
+
+      expect(completedOf(completed, "task-3")).toBe(false);
+    });
+
+    it("存在しない TaskId を指定しても何も起きない", () => {
+      expect(threeTasks().completeTask(id("task-999")).countActive()).toBe(2);
+    });
+  });
+
+  describe("問い合わせ", () => {
     it("存在の有無を確かめられる", () => {
-      expect(threeTasks().contains(TaskId.of("task-1"))).toBe(true);
-      expect(threeTasks().contains(TaskId.of("task-999"))).toBe(false);
+      expect(threeTasks().contains(id("task-1"))).toBe(true);
+      expect(threeTasks().contains(id("task-999"))).toBe(false);
+    });
+
+    it("完了しているかを確かめられる", () => {
+      expect(completedOf(threeTasks(), "task-1")).toBe(true);
+      expect(completedOf(threeTasks(), "task-2")).toBe(false);
+    });
+
+    it("存在しない Task は完了していないものとして扱う", () => {
+      expect(completedOf(threeTasks(), "task-999")).toBe(false);
     });
   });
 
@@ -120,7 +183,9 @@ describe("TaskList", () => {
     });
 
     it("すべて完了していれば 0 件", () => {
-      const list = TaskList.of([EAT, SLEEP.complete(), REPEAT.complete()]);
+      const list = threeTasks()
+        .completeTask(id("task-2"))
+        .completeTask(id("task-3"));
 
       expect(list.countActive()).toBe(0);
     });
@@ -130,9 +195,7 @@ describe("TaskList", () => {
     });
 
     it("Task を完了にすると件数が減る", () => {
-      const list = threeTasks().replace(SLEEP.complete());
-
-      expect(list.countActive()).toBe(1);
+      expect(threeTasks().completeTask(id("task-2")).countActive()).toBe(1);
     });
   });
 });

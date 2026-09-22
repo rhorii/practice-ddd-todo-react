@@ -78,6 +78,14 @@ describe("LocalStorageTaskRepository", () => {
       expect((await loadFrom(broken)).isEmpty).toBe(true);
     });
 
+    it("同じ TaskId が重複していれば空の一覧を返す", async () => {
+      // 集約の不変条件に反するため TaskList を組み立てられない
+      const duplicated =
+        '{"version": 1, "tasks": [{"id":"task-1","name":"Eat","completed":false},{"id":"task-1","name":"Sleep","completed":false}]}';
+
+      expect((await loadFrom(duplicated)).isEmpty).toBe(true);
+    });
+
     it("壊れた内容は次の保存で上書きされる", async () => {
       localStorage.setItem(DEFAULT_STORAGE_KEY, "{ not json");
       const repository = new LocalStorageTaskRepository();

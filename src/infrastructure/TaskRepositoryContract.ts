@@ -44,7 +44,9 @@ export function describeTaskRepositoryContract(
 
       await repository.save(TaskList.of([EAT]));
 
-      const loaded = (await repository.load()).find(TaskId.of("task-1"));
+      const loaded = (await repository.load())
+        .toArray()
+        .find((task) => task.id.equals(TaskId.of("task-1")));
 
       expect(loaded?.name.value).toBe("Eat");
       expect(loaded?.isCompleted).toBe(true);
@@ -90,7 +92,7 @@ export function describeTaskRepositoryContract(
 
       await repository.save(TaskList.of([SLEEP]));
       const loaded = await repository.load();
-      await repository.save(loaded.replace(SLEEP.complete()));
+      await repository.save(loaded.completeTask(SLEEP.id));
 
       expect((await repository.load()).countActive()).toBe(0);
     });

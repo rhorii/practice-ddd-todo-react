@@ -1,4 +1,3 @@
-import { TaskId } from "../domain/TaskId";
 import { InvalidTaskNameError } from "../domain/TaskName";
 import { InMemoryTaskRepository } from "../infrastructure/InMemoryTaskRepository";
 import { RenameTask } from "./RenameTask";
@@ -64,7 +63,7 @@ describe("RenameTask", () => {
 
     const saved = await repository.load();
 
-    expect(saved.find(TaskId.of("task-1"))?.name.value).toBe("Brunch");
+    expect(saved.toArray()[0]?.name.value).toBe("Brunch");
   });
 
   it("存在しない TaskId を指定しても何も起きない", async () => {
@@ -89,7 +88,7 @@ describe("RenameTask", () => {
 
       const saved = await repository.load();
 
-      expect(saved.find(TaskId.of("task-1"))?.name.value).toBe("Eat");
+      expect(saved.toArray()[0]?.name.value).toBe("Eat");
     });
   });
 });

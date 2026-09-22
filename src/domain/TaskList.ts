@@ -1,22 +1,53 @@
 import type { Task } from "./Task";
 import type { TaskId } from "./TaskId";
+import type { TaskName } from "./TaskName";
+
+export class DuplicateTaskError extends Error {
+  constructor(id: TaskId) {
+    super(`同じ TaskId の Task が既に存在します: ${id.value}`);
+    this.name = "DuplicateTaskError";
+  }
+}
 
 /**
- * Task の集まり。
+ * Task の集まり。このアプリケーションの**集約ルート**。
  *
- * 生の配列をクラスで包み、「Task の集合に対する操作」をここに集める
- * （ファーストクラスコレクション）。こうしないと map や filter が UI に散らばり、
- * 「未完了の件数を数える」といったドメインの知識が画面のコードに漏れ出す。
+ * 集約とは整合性を保つ単位であり、外部からは集約ルートを経由してのみ操作する。
+ * Task はこの集約の内側にいるエンティティで、単独で保存されることはない。
  *
- * Task と同じくイミュータブルで、変更操作は新しい TaskList を返す。
+ * ## なぜ Task ではなく TaskList を集約ルートにしたか
  *
- * 現時点では同じ TaskId の Task を2つ持つことを禁じていない。
- * 集約としてその不変条件を持つべきかは T5-1 で検討する。
+ * 「同じ TaskId の Task が2つない」「並び順が保たれる」は、Task 単体では
+ * 守れず集合でなければ判断できない不変条件だから。Task を集約ルートにすると、
+ * これらを守る責任が永続化の実装側（DB の一意制約など）に漏れる。
+ *
+ * 代償として、全件をまとめて読み書きすることになり、並行更新にも弱い
+ * （後から保存したほうが勝つ）。このアプリは単一ユーザーで件数も限られるため
+ * 引き合うが、複数人が同時に編集する・件数が数千を超えるといった状況になれば
+ * Task を集約ルートにする設計を検討し直す価値がある。
+ *
+ * ## 変更の入口
+ *
+ * 内側の Task への変更は必ずこのクラスのメソッドを通す。外から Task を
+ * 取り出して変更し戻す経路を残すと、集合としてのルールを適用できる場所が
+ * 分散してしまう。そのため find と replace は非公開にしている。
+ *
+ * 読み出しのための toArray は公開している。Task はイミュータブルなので
+ * 取り出されても変更はできず、DTO への変換に必要なため。
  */
 export class TaskList {
   private constructor(private readonly tasks: readonly Task[]) {}
 
   static of(tasks: readonly Task[]): TaskList {
+    const seen = new Set<string>();
+
+    for (const task of tasks) {
+      if (seen.has(task.id.value)) {
+        throw new DuplicateTaskError(task.id);
+      }
+      seen.add(task.id.value);
+    }
+
     return new TaskList([...tasks]);
   }
 
@@ -25,6 +56,10 @@ export class TaskList {
   }
 
   add(task: Task): TaskList {
+    if (this.contains(task.id)) {
+      throw new DuplicateTaskError(task.id);
+    }
+
     return new TaskList([...this.tasks, task]);
   }
 
@@ -37,22 +72,35 @@ export class TaskList {
   }
 
   /**
-   * 同じ TaskId を持つ Task を差し替える。
-   * Task はイミュータブルなので、完了や名前の変更はこの差し替えとして表現される。
+   * 指定した Task の名前を変える。
    * 該当する Task がなければ何も起きない。
    */
-  replace(task: Task): TaskList {
-    return new TaskList(
-      this.tasks.map((current) => (current.id.equals(task.id) ? task : current))
-    );
+  renameTask(id: TaskId, newName: TaskName): TaskList {
+    return this.mapTask(id, (task) => task.rename(newName));
   }
 
-  find(id: TaskId): Task | undefined {
-    return this.tasks.find((task) => task.id.equals(id));
+  /** 指定した Task を完了にする。該当する Task がなければ何も起きない。 */
+  completeTask(id: TaskId): TaskList {
+    return this.mapTask(id, (task) => task.complete());
+  }
+
+  /** 指定した Task を未完了に戻す。該当する Task がなければ何も起きない。 */
+  incompleteTask(id: TaskId): TaskList {
+    return this.mapTask(id, (task) => task.incomplete());
   }
 
   contains(id: TaskId): boolean {
     return this.find(id) !== undefined;
+  }
+
+  /**
+   * 指定した Task が完了しているか。該当する Task がなければ false。
+   *
+   * 「完了しているなら未完了に戻す」のような組み立ては UI の都合であり
+   * ドメインの操作ではないため、判断に必要な情報だけを外に見せる。
+   */
+  isTaskCompleted(id: TaskId): boolean {
+    return this.find(id)?.isCompleted ?? false;
   }
 
   /**
@@ -73,5 +121,29 @@ export class TaskList {
 
   toArray(): readonly Task[] {
     return this.tasks;
+  }
+
+  private mapTask(id: TaskId, change: (task: Task) => Task): TaskList {
+    const target = this.find(id);
+
+    if (target === undefined) {
+      return this;
+    }
+
+    return this.replace(change(target));
+  }
+
+  private find(id: TaskId): Task | undefined {
+    return this.tasks.find((task) => task.id.equals(id));
+  }
+
+  /**
+   * 同じ TaskId を持つ Task を置き換える。
+   * Task はイミュータブルなので、変更はすべてこの差し替えとして表現される。
+   */
+  private replace(task: Task): TaskList {
+    return new TaskList(
+      this.tasks.map((current) => (current.id.equals(task.id) ? task : current))
+    );
   }
 }
