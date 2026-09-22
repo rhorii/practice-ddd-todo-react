@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "useDefineForClassFields": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+
+    /* 型検査のみを行い、変換は Vite / esbuild に任せる */
+    "noEmit": true,
+
+    /* DDD リファクタリングの土台となる厳格さ */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* describe / it / expect をグローバルとして解決する (vite.config.ts の test.globals) */
+    "types": ["vitest/globals"]
+  },
+  "include": ["src", "vite.config.ts"]
+}
