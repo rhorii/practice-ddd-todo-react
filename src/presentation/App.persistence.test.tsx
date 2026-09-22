@@ -1,18 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AddTask } from "../application/AddTask";
-import { BuildTaskListView } from "../application/BuildTaskListView";
-import { CountRemainingTasks } from "../application/CountRemainingTasks";
-import { DeleteTask } from "../application/DeleteTask";
-import { taskFilterNames } from "../application/taskFilterNames";
-import { FilterTasks } from "../application/FilterTasks";
-import { LoadTasks } from "../application/LoadTasks";
-import { RenameTask } from "../application/RenameTask";
-import { ToggleTaskCompletion } from "../application/ToggleTaskCompletion";
+import { createTaskUseCases } from "../application/TaskUseCases";
 import type { TaskRepository } from "../domain/TaskRepository";
-import { NanoidTaskIdGenerator } from "../infrastructure/NanoidTaskIdGenerator";
 import { LocalStorageTaskRepository } from "../infrastructure/LocalStorageTaskRepository";
+import { NanoidTaskIdGenerator } from "../infrastructure/NanoidTaskIdGenerator";
 import App from "./App";
+import { TaskUseCasesContext } from "./TaskUseCasesContext";
 
 // localStorage に保存する構成で、アプリを開き直しても内容が残ることを確かめる。
 // 個々の部品は単体テストで検証済みなので、ここでは組み立てた全体が
@@ -23,28 +16,12 @@ beforeEach(() => {
 });
 
 async function openApp(repository: TaskRepository) {
-  const loadTasks = new LoadTasks(repository);
-  const addTask = new AddTask(repository, new NanoidTaskIdGenerator());
-  const deleteTask = new DeleteTask(repository);
-  const renameTask = new RenameTask(repository);
-  const toggleTaskCompletion = new ToggleTaskCompletion(repository);
-  const buildTaskListView = new BuildTaskListView(
-    new FilterTasks(),
-    new CountRemainingTasks()
-  );
+  const useCases = createTaskUseCases(repository, new NanoidTaskIdGenerator());
 
   const rendered = render(
-    <App
-      loadTasks={() => loadTasks.execute()}
-      addTask={(name) => addTask.execute(name)}
-      deleteTask={(id) => deleteTask.execute(id)}
-      renameTask={(id, newName) => renameTask.execute(id, newName)}
-      toggleTaskCompletion={(id) => toggleTaskCompletion.execute(id)}
-      buildTaskListView={(tasks, filterName) =>
-        buildTaskListView.execute(tasks, filterName)
-      }
-      filterNames={taskFilterNames()}
-    />
+    <TaskUseCasesContext.Provider value={useCases}>
+      <App />
+    </TaskUseCasesContext.Provider>
   );
 
   return { user: userEvent.setup(), ...rendered };

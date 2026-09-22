@@ -3,27 +3,17 @@ import Form from "./Form";
 import FilterButton from "./FilterButton";
 import TaskItem from "./TaskItem";
 import { InvalidTaskNameError } from "../application/InvalidTaskNameError";
-import type { TaskFilterName } from "../application/taskFilterNames";
+import {
+  taskFilterNames,
+  type TaskFilterName,
+} from "../application/taskFilterNames";
 import type { TaskDto } from "../application/TaskDto";
 import type { TaskListView } from "../application/TaskListView";
+import { useTaskUseCases } from "./TaskUseCasesContext";
 
-// タスク一覧に対する操作はすべて外から渡される。
-// App は「どう変えるか」も「どこに保存されるか」も知らず、
-// 操作の結果として返ってきた一覧を描画するだけ。
-type AppProps = {
-  loadTasks: () => Promise<TaskDto[]>;
-  addTask: (name: string) => Promise<TaskDto[]>;
-  deleteTask: (id: string) => Promise<TaskDto[]>;
-  renameTask: (id: string, newName: string) => Promise<TaskDto[]>;
-  toggleTaskCompletion: (id: string) => Promise<TaskDto[]>;
-  // 表示に必要な一式の組み立て。保存内容を変えない「見せ方」の操作なので、
-  // 画面が既に持っている一覧に対して同期的に適用する。
-  buildTaskListView: (
-    tasks: readonly TaskDto[],
-    filterName: TaskFilterName
-  ) => TaskListView;
-  filterNames: readonly TaskFilterName[];
-};
+// 選べるフィルタはドメインが持つ取り決めで、差し替える対象ではないため
+// Context を通さずそのまま参照する。
+const FILTER_NAMES = taskFilterNames();
 
 /**
  * 不正な名前が入力されたときは、その操作を行わない。
@@ -51,11 +41,15 @@ function usePrevious<T>(value: T): T | null {
   return ref.current;
 }
 
-function App(props: AppProps) {
+function App() {
+  // タスクに対する操作はすべて Context から受け取る。
+  // App は「どう変えるか」も「どこに保存されるか」も知らず、
+  // 操作の結果として返ってきた一覧を描画するだけ。
+  const useCases = useTaskUseCases();
   const [tasks, setTasks] = useState<TaskDto[]>([]);
   const [filter, setFilter] = useState<TaskFilterName>("All");
 
-  const { loadTasks } = props;
+  const { loadTasks } = useCases;
 
   // 保存されている一覧を最初に読み出す。以降の一覧は各操作の戻り値として得られる。
   useEffect(() => {
@@ -73,20 +67,20 @@ function App(props: AppProps) {
   }, [loadTasks]);
 
   async function toggleTaskCompletion(id: string) {
-    setTasks(await props.toggleTaskCompletion(id));
+    setTasks(await useCases.toggleTaskCompletion(id));
   }
 
   async function deleteTask(id: string) {
-    setTasks(await props.deleteTask(id));
+    setTasks(await useCases.deleteTask(id));
   }
 
   async function renameTask(id: string, newName: string) {
     await ignoringInvalidName(async () => {
-      setTasks(await props.renameTask(id, newName));
+      setTasks(await useCases.renameTask(id, newName));
     });
   }
 
-  const view: TaskListView = props.buildTaskListView(tasks, filter);
+  const view: TaskListView = useCases.buildTaskListView(tasks, filter);
 
   const visibleTaskItems = view.visibleTasks
     .map((task) => (
@@ -101,7 +95,7 @@ function App(props: AppProps) {
       />
     ));
 
-  const filterButtons = props.filterNames.map((name) => (
+  const filterButtons = FILTER_NAMES.map((name) => (
     <FilterButton
       key={name}
       name={name}
@@ -112,7 +106,7 @@ function App(props: AppProps) {
 
   async function addTask(name: string) {
     await ignoringInvalidName(async () => {
-      setTasks(await props.addTask(name));
+      setTasks(await useCases.addTask(name));
     });
   }
 

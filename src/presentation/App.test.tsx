@@ -1,19 +1,12 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AddTask } from "../application/AddTask";
-import { BuildTaskListView } from "../application/BuildTaskListView";
-import { CountRemainingTasks } from "../application/CountRemainingTasks";
-import { DeleteTask } from "../application/DeleteTask";
-import { taskFilterNames } from "../application/taskFilterNames";
-import { FilterTasks } from "../application/FilterTasks";
-import { LoadTasks } from "../application/LoadTasks";
-import { RenameTask } from "../application/RenameTask";
+import { createTaskUseCases } from "../application/TaskUseCases";
 import { toTaskList } from "../application/TaskMapper";
-import { ToggleTaskCompletion } from "../application/ToggleTaskCompletion";
 import { TaskId } from "../domain/TaskId";
 import type { TaskIdGenerator } from "../domain/TaskIdGenerator";
 import { InMemoryTaskRepository } from "../infrastructure/InMemoryTaskRepository";
 import App from "./App";
+import { TaskUseCasesContext } from "./TaskUseCasesContext";
 
 // 特性テスト (characterization test)
 //
@@ -32,8 +25,8 @@ const INITIAL_TASKS = [
 ];
 
 // 差し替えるのは ID の発行方法だけにする。
-// ユースケース自体は本番と同じものを組み立てないと、特性テストが
-// 本物のアプリではなく偽物を検証することになってしまう。
+// ユースケースの組み立ては本番と同じ createTaskUseCases を使わないと、
+// 特性テストが本物のアプリではなく偽物を検証することになってしまう。
 class SequentialTaskIdGenerator implements TaskIdGenerator {
   private count = 0;
 
@@ -44,30 +37,15 @@ class SequentialTaskIdGenerator implements TaskIdGenerator {
 }
 
 async function renderApp() {
-  const repository = new InMemoryTaskRepository(toTaskList(INITIAL_TASKS));
-
-  const loadTasks = new LoadTasks(repository);
-  const addTask = new AddTask(repository, new SequentialTaskIdGenerator());
-  const deleteTask = new DeleteTask(repository);
-  const renameTask = new RenameTask(repository);
-  const toggleTaskCompletion = new ToggleTaskCompletion(repository);
-  const buildTaskListView = new BuildTaskListView(
-    new FilterTasks(),
-    new CountRemainingTasks()
+  const useCases = createTaskUseCases(
+    new InMemoryTaskRepository(toTaskList(INITIAL_TASKS)),
+    new SequentialTaskIdGenerator()
   );
 
   const rendered = render(
-    <App
-      loadTasks={() => loadTasks.execute()}
-      addTask={(name) => addTask.execute(name)}
-      deleteTask={(id) => deleteTask.execute(id)}
-      renameTask={(id, newName) => renameTask.execute(id, newName)}
-      toggleTaskCompletion={(id) => toggleTaskCompletion.execute(id)}
-      buildTaskListView={(tasks, filterName) =>
-        buildTaskListView.execute(tasks, filterName)
-      }
-      filterNames={taskFilterNames()}
-    />
+    <TaskUseCasesContext.Provider value={useCases}>
+      <App />
+    </TaskUseCasesContext.Provider>
   );
 
   // 一覧の読み出しは非同期なので、描画が落ち着くまで待つ
