@@ -199,3 +199,49 @@ describe("TaskList", () => {
     });
   });
 });
+
+// ドメインイベント: 起きたことと、それに対する反応を切り離すための仕組み。
+// TaskList は出来事を載せて返すだけで、誰がどう反応するかは知らない。
+describe("TaskList のドメインイベント", () => {
+  it("作られた直後のリストには出来事がない", () => {
+    expect(threeTasks().events).toEqual([]);
+  });
+
+  it("Task を完了にすると TaskCompleted が起きる", () => {
+    const events = threeTasks().completeTask(id("task-2")).events;
+
+    expect(events).toHaveLength(1);
+    expect(events[0]?.taskId.value).toBe("task-2");
+  });
+
+  it("完了した時点の名前を抱えて運ぶ", () => {
+    const events = threeTasks().completeTask(id("task-2")).events;
+
+    expect(events[0]?.taskName.value).toBe("Sleep");
+  });
+
+  it("発生時刻を持つ", () => {
+    const events = threeTasks().completeTask(id("task-2")).events;
+
+    expect(events[0]?.occurredAt).toBeInstanceOf(Date);
+  });
+
+  it("既に完了している Task を完了にしても出来事は起きない", () => {
+    expect(threeTasks().completeTask(id("task-1")).events).toEqual([]);
+  });
+
+  it("存在しない Task を完了にしても出来事は起きない", () => {
+    expect(threeTasks().completeTask(id("task-999")).events).toEqual([]);
+  });
+
+  it("未完了に戻しても出来事は起きない", () => {
+    // 反応する相手がいないイベントは作らない
+    expect(threeTasks().incompleteTask(id("task-1")).events).toEqual([]);
+  });
+
+  it("次の操作には前の操作の出来事が残らない", () => {
+    const completed = threeTasks().completeTask(id("task-2"));
+
+    expect(completed.remove(id("task-3")).events).toEqual([]);
+  });
+});

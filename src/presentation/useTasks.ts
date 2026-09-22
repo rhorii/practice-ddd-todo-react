@@ -3,6 +3,7 @@ import {
   InvalidTaskNameError,
   type InvalidTaskNameReason,
 } from "../application/InvalidTaskNameError";
+import type { CompletedTaskDto } from "../application/CompletedTaskDto";
 import type { TaskDto } from "../application/TaskDto";
 import { useTaskUseCases } from "./TaskUseCasesContext";
 
@@ -29,6 +30,8 @@ export type TaskNameResult =
 
 export type Tasks = {
   tasks: TaskDto[];
+  /** 最近完了した Task。完了のたびに更新される。 */
+  recentCompletions: CompletedTaskDto[];
   addTask: (name: string) => Promise<TaskNameResult>;
   deleteTask: (id: string) => Promise<void>;
   renameTask: (id: string, newName: string) => Promise<TaskNameResult>;
@@ -38,23 +41,29 @@ export type Tasks = {
 export function useTasks(): Tasks {
   const useCases = useTaskUseCases();
   const [tasks, setTasks] = useState<TaskDto[]>([]);
+  const [recentCompletions, setRecentCompletions] = useState<
+    CompletedTaskDto[]
+  >([]);
 
-  const { loadTasks } = useCases;
+  const { loadTasks, listRecentCompletions } = useCases;
 
   // 保存されている一覧を最初に読み出す。以降の一覧は各操作の戻り値として得られる。
   useEffect(() => {
     let abandoned = false;
 
-    void loadTasks().then((loaded) => {
-      if (!abandoned) {
-        setTasks(loaded);
+    void Promise.all([loadTasks(), listRecentCompletions()]).then(
+      ([loaded, completions]) => {
+        if (!abandoned) {
+          setTasks(loaded);
+          setRecentCompletions(completions);
+        }
       }
-    });
+    );
 
     return () => {
       abandoned = true;
     };
-  }, [loadTasks]);
+  }, [loadTasks, listRecentCompletions]);
 
   const addTask = useCallback(
     async (name: string): Promise<TaskNameResult> =>
@@ -82,11 +91,21 @@ export function useTasks(): Tasks {
   const toggleTaskCompletion = useCallback(
     async (id: string) => {
       setTasks(await useCases.toggleTaskCompletion(id));
+      // 完了すると履歴が増える。記録そのものは ToggleTaskCompletion の中で
+      // ドメインイベントに反応して行われるので、ここでは読み直すだけ。
+      setRecentCompletions(await useCases.listRecentCompletions());
     },
     [useCases]
   );
 
-  return { tasks, addTask, deleteTask, renameTask, toggleTaskCompletion };
+  return {
+    tasks,
+    recentCompletions,
+    addTask,
+    deleteTask,
+    renameTask,
+    toggleTaskCompletion,
+  };
 }
 
 /**

@@ -5,6 +5,7 @@ import { TaskUseCasesContext } from './presentation/TaskUseCasesContext'
 import { createTaskUseCases } from './application/TaskUseCases'
 import { toTaskList } from './application/TaskMapper'
 import type { TaskRepository } from './domain/TaskRepository'
+import { LocalStorageCompletionHistory } from './infrastructure/LocalStorageCompletionHistory'
 import { LocalStorageTaskRepository } from './infrastructure/LocalStorageTaskRepository'
 import { NanoidTaskIdGenerator } from './infrastructure/NanoidTaskIdGenerator'
 import './index.css'
@@ -20,7 +21,8 @@ const INITIAL_TASKS = [
 const taskRepository = new LocalStorageTaskRepository();
 const taskUseCases = createTaskUseCases(
   taskRepository,
-  new NanoidTaskIdGenerator()
+  new NanoidTaskIdGenerator(),
+  new LocalStorageCompletionHistory()
 );
 
 /** 保存されている内容が空のときだけ、見本のタスクを入れる。 */

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { createTaskUseCases } from "../application/TaskUseCases";
 import type { TaskRepository } from "../domain/TaskRepository";
 import { LocalStorageTaskRepository } from "../infrastructure/LocalStorageTaskRepository";
+import { LocalStorageCompletionHistory } from "../infrastructure/LocalStorageCompletionHistory";
 import { NanoidTaskIdGenerator } from "../infrastructure/NanoidTaskIdGenerator";
 import App from "./App";
 import { TaskUseCasesContext } from "./TaskUseCasesContext";
@@ -16,7 +17,11 @@ beforeEach(() => {
 });
 
 async function openApp(repository: TaskRepository) {
-  const useCases = createTaskUseCases(repository, new NanoidTaskIdGenerator());
+  const useCases = createTaskUseCases(
+    repository,
+    new NanoidTaskIdGenerator(),
+    new LocalStorageCompletionHistory()
+  );
 
   const rendered = render(
     <TaskUseCasesContext.Provider value={useCases}>

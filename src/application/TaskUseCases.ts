@@ -1,3 +1,4 @@
+import type { CompletionHistory } from "../domain/CompletionHistory";
 import type { TaskIdGenerator } from "../domain/TaskIdGenerator";
 import type { TaskRepository } from "../domain/TaskRepository";
 import { AddTask } from "./AddTask";
@@ -5,8 +6,10 @@ import { BuildTaskListView } from "./BuildTaskListView";
 import { CountRemainingTasks } from "./CountRemainingTasks";
 import { DeleteTask } from "./DeleteTask";
 import { FilterTasks } from "./FilterTasks";
+import { ListRecentCompletions } from "./ListRecentCompletions";
 import { LoadTasks } from "./LoadTasks";
 import { RenameTask } from "./RenameTask";
+import type { CompletedTaskDto } from "./CompletedTaskDto";
 import type { TaskDto } from "./TaskDto";
 import type { TaskListView } from "./TaskListView";
 import { ToggleTaskCompletion } from "./ToggleTaskCompletion";
@@ -29,6 +32,7 @@ export type TaskUseCases = {
     tasks: readonly TaskDto[],
     filterName: string
   ) => TaskListView;
+  listRecentCompletions: () => Promise<CompletedTaskDto[]>;
 };
 
 /**
@@ -40,13 +44,15 @@ export type TaskUseCases = {
  */
 export function createTaskUseCases(
   tasks: TaskRepository,
-  taskIdGenerator: TaskIdGenerator
+  taskIdGenerator: TaskIdGenerator,
+  history: CompletionHistory
 ): TaskUseCases {
   const loadTasks = new LoadTasks(tasks);
   const addTask = new AddTask(tasks, taskIdGenerator);
   const deleteTask = new DeleteTask(tasks);
   const renameTask = new RenameTask(tasks);
-  const toggleTaskCompletion = new ToggleTaskCompletion(tasks);
+  const toggleTaskCompletion = new ToggleTaskCompletion(tasks, history);
+  const listRecentCompletions = new ListRecentCompletions(history);
   const buildTaskListView = new BuildTaskListView(
     new FilterTasks(),
     new CountRemainingTasks()
@@ -60,5 +66,6 @@ export function createTaskUseCases(
     toggleTaskCompletion: (id) => toggleTaskCompletion.execute(id),
     buildTaskListView: (currentTasks, filterName) =>
       buildTaskListView.execute(currentTasks, filterName),
+    listRecentCompletions: () => listRecentCompletions.execute(),
   };
 }

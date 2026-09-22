@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { createTaskUseCases } from "../application/TaskUseCases";
 import { InMemoryTaskRepository } from "../infrastructure/InMemoryTaskRepository";
+import { InMemoryCompletionHistory } from "../infrastructure/InMemoryCompletionHistory";
 import { NanoidTaskIdGenerator } from "../infrastructure/NanoidTaskIdGenerator";
 import { TaskUseCasesContext, useTaskUseCases } from "./TaskUseCasesContext";
 
@@ -14,7 +15,8 @@ describe("useTaskUseCases", () => {
   it("Provider の中ではユースケースを取り出せる", () => {
     const useCases = createTaskUseCases(
       new InMemoryTaskRepository(),
-      new NanoidTaskIdGenerator()
+      new NanoidTaskIdGenerator(),
+      new InMemoryCompletionHistory()
     );
 
     render(

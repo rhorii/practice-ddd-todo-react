@@ -30,8 +30,14 @@ function usePrevious<T>(value: T): T | null {
  * 画面固有の関心事（選択中のフィルタ、削除後のフォーカス移動）だけ。
  */
 function App() {
-  const { tasks, addTask, deleteTask, renameTask, toggleTaskCompletion } =
-    useTasks();
+  const {
+    tasks,
+    recentCompletions,
+    addTask,
+    deleteTask,
+    renameTask,
+    toggleTaskCompletion,
+  } = useTasks();
   const { buildTaskListView } = useTaskUseCases();
 
   const [filter, setFilter] = useState<TaskFilterName>("All");
@@ -86,6 +92,20 @@ function App() {
       >
         {visibleTaskItems}
       </ul>
+      {recentCompletions.length > 0 && (
+        <section className="stack-exception">
+          <h2 id="recent-completions-heading">Recently completed</h2>
+          <ul
+            aria-labelledby="recent-completions-heading"
+            className="recent-completions"
+            role="list"
+          >
+            {recentCompletions.map((completion) => (
+              <li key={completion.completedAt}>{completion.name}</li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

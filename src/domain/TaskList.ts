@@ -1,4 +1,5 @@
 import type { Task } from "./Task";
+import { TaskCompleted, type DomainEvent } from "./TaskCompleted";
 import type { TaskId } from "./TaskId";
 import type { TaskName } from "./TaskName";
 
@@ -34,9 +35,25 @@ export class DuplicateTaskError extends Error {
  *
  * 読み出しのための toArray は公開している。Task はイミュータブルなので
  * 取り出されても変更はできず、DTO への変換に必要なため。
+ *
+ * ## ドメインイベント
+ *
+ * 操作の結果として起きた出来事は events に載せて返す。イミュータブルなので
+ * 操作のたびに新しい TaskList が生まれ、そこに載るのはその操作で起きたことだけ。
+ * 溜め込んで消し忘れる、という状態を持たずに済む。
+ *
+ * 発行するだけで、誰がどう反応するかは知らない。
  */
 export class TaskList {
-  private constructor(private readonly tasks: readonly Task[]) {}
+  private constructor(
+    private readonly tasks: readonly Task[],
+    private readonly raisedEvents: readonly DomainEvent[] = []
+  ) {}
+
+  /** この TaskList を生んだ操作で起きた出来事。 */
+  get events(): readonly DomainEvent[] {
+    return this.raisedEvents;
+  }
 
   static of(tasks: readonly Task[]): TaskList {
     const seen = new Set<string>();
@@ -79,9 +96,20 @@ export class TaskList {
     return this.mapTask(id, (task) => task.rename(newName));
   }
 
-  /** 指定した Task を完了にする。該当する Task がなければ何も起きない。 */
+  /**
+   * 指定した Task を完了にする。該当する Task がなければ何も起きない。
+   * 既に完了している Task を完了にしても、出来事は起きていないのでイベントも生まれない。
+   */
   completeTask(id: TaskId): TaskList {
-    return this.mapTask(id, (task) => task.complete());
+    const target = this.find(id);
+
+    if (target === undefined || target.isCompleted) {
+      return this;
+    }
+
+    return this.replace(target.complete(), [
+      new TaskCompleted(target.id, target.name),
+    ]);
   }
 
   /** 指定した Task を未完了に戻す。該当する Task がなければ何も起きない。 */
@@ -141,9 +169,10 @@ export class TaskList {
    * 同じ TaskId を持つ Task を置き換える。
    * Task はイミュータブルなので、変更はすべてこの差し替えとして表現される。
    */
-  private replace(task: Task): TaskList {
+  private replace(task: Task, events: readonly DomainEvent[] = []): TaskList {
     return new TaskList(
-      this.tasks.map((current) => (current.id.equals(task.id) ? task : current))
+      this.tasks.map((current) => (current.id.equals(task.id) ? task : current)),
+      events
     );
   }
 }

@@ -4,6 +4,7 @@ import { createTaskUseCases } from "../application/TaskUseCases";
 import { toTaskList } from "../application/TaskMapper";
 import { TaskId } from "../domain/TaskId";
 import type { TaskIdGenerator } from "../domain/TaskIdGenerator";
+import { InMemoryCompletionHistory } from "../infrastructure/InMemoryCompletionHistory";
 import { InMemoryTaskRepository } from "../infrastructure/InMemoryTaskRepository";
 import App from "./App";
 import { TaskUseCasesContext } from "./TaskUseCasesContext";
@@ -39,7 +40,8 @@ class SequentialTaskIdGenerator implements TaskIdGenerator {
 async function renderApp() {
   const useCases = createTaskUseCases(
     new InMemoryTaskRepository(toTaskList(INITIAL_TASKS)),
-    new SequentialTaskIdGenerator()
+    new SequentialTaskIdGenerator(),
+    new InMemoryCompletionHistory()
   );
 
   const rendered = render(
@@ -433,5 +435,50 @@ describe("名前の正規化", () => {
     await user.click(saveButton("Eat"));
 
     expect(screen.getByRole("checkbox", { name: "Brunch" })).toBeInTheDocument();
+  });
+});
+
+// ドメインイベントが画面に届くまでの一通り。
+// TaskList が TaskCompleted を発行し、ToggleTaskCompletion が履歴に配り、
+// 画面がそれを読み出して表示する。
+describe("最近完了したタスク", () => {
+  const recentCompletions = () =>
+    screen.queryByRole("list", { name: "Recently completed" });
+
+  const completedNames = () =>
+    within(screen.getByRole("list", { name: "Recently completed" }))
+      .getAllByRole("listitem")
+      .map((item) => item.textContent);
+
+  it("何も完了していなければ表示しない", async () => {
+    await renderApp();
+
+    expect(recentCompletions()).not.toBeInTheDocument();
+  });
+
+  it("完了したタスクの名前が現れる", async () => {
+    const { user } = await renderApp();
+
+    await user.click(screen.getByRole("checkbox", { name: "Sleep" }));
+
+    expect(completedNames()).toEqual(["Sleep"]);
+  });
+
+  it("未完了に戻しても履歴には残る", async () => {
+    const { user } = await renderApp();
+
+    await user.click(screen.getByRole("checkbox", { name: "Sleep" }));
+    await user.click(screen.getByRole("checkbox", { name: "Sleep" }));
+
+    expect(recentCompletions()).toBeInTheDocument();
+  });
+
+  it("未完了に戻すだけでは履歴が増えない", async () => {
+    const { user } = await renderApp();
+
+    // Eat は最初から完了しているので、押すと未完了に戻るだけ
+    await user.click(screen.getByRole("checkbox", { name: "Eat" }));
+
+    expect(recentCompletions()).not.toBeInTheDocument();
   });
 });

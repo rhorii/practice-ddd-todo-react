@@ -1,3 +1,4 @@
+import { InMemoryCompletionHistory } from "../infrastructure/InMemoryCompletionHistory";
 import { InMemoryTaskRepository } from "../infrastructure/InMemoryTaskRepository";
 import { toTaskList } from "./TaskMapper";
 import { ToggleTaskCompletion } from "./ToggleTaskCompletion";
@@ -9,8 +10,13 @@ const TASKS = [
 
 function setup() {
   const repository = new InMemoryTaskRepository(toTaskList(TASKS));
+  const history = new InMemoryCompletionHistory();
 
-  return { repository, toggle: new ToggleTaskCompletion(repository) };
+  return {
+    repository,
+    history,
+    toggle: new ToggleTaskCompletion(repository, history),
+  };
 }
 
 describe("ToggleTaskCompletion", () => {
@@ -61,5 +67,40 @@ describe("ToggleTaskCompletion", () => {
     const { toggle } = setup();
 
     expect(await toggle.execute("task-999")).toEqual(TASKS);
+  });
+
+  // 集約が発行した出来事を、反応する相手に配るのはこの層の仕事。
+  describe("ドメインイベントの配布", () => {
+    it("完了にすると履歴に記録される", async () => {
+      const { toggle, history } = setup();
+
+      await toggle.execute("task-2");
+
+      expect(await history.recent(10)).toHaveLength(1);
+    });
+
+    it("完了した時点の名前が記録される", async () => {
+      const { toggle, history } = setup();
+
+      await toggle.execute("task-2");
+
+      expect((await history.recent(10))[0]?.taskName.value).toBe("Sleep");
+    });
+
+    it("未完了に戻しても記録されない", async () => {
+      const { toggle, history } = setup();
+
+      await toggle.execute("task-1");
+
+      expect(await history.recent(10)).toHaveLength(0);
+    });
+
+    it("存在しない Task を切り替えても記録されない", async () => {
+      const { toggle, history } = setup();
+
+      await toggle.execute("task-999");
+
+      expect(await history.recent(10)).toHaveLength(0);
+    });
   });
 });

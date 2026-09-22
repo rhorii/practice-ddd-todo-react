@@ -303,3 +303,12 @@ body {
   font-size: 1.4rem;
   font-family: Arial, sans-serif;
 }
+
+/* 最近完了したタスク */
+.recent-completions {
+  margin: 0;
+  padding: 0 0 0 2rem;
+  font-size: 1.6rem;
+  font-family: Arial, sans-serif;
+  color: #4d4d4d;
+}
