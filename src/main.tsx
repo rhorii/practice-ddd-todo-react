@@ -4,8 +4,8 @@ import App from './presentation/App'
 import { AddTask } from './application/AddTask'
 import { CountRemainingTasks } from './application/CountRemainingTasks'
 import { DeleteTask } from './application/DeleteTask'
-import { ListTaskFilters } from './application/ListTaskFilters'
-import { ListTasks } from './application/ListTasks'
+import { taskFilterNames } from './application/taskFilterNames'
+import { FilterTasks } from './application/FilterTasks'
 import { LoadTasks } from './application/LoadTasks'
 import { RenameTask } from './application/RenameTask'
 import { toTaskList } from './application/TaskMapper'
@@ -41,8 +41,8 @@ const deleteTask = new DeleteTask(taskRepository);
 const renameTask = new RenameTask(taskRepository);
 const toggleTaskCompletion = new ToggleTaskCompletion(taskRepository);
 const countRemainingTasks = new CountRemainingTasks();
-const listTasks = new ListTasks();
-const filterNames = new ListTaskFilters().execute();
+const filterTasks = new FilterTasks();
+const filterNames = taskFilterNames();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -59,7 +59,7 @@ void seedInitialTasks(taskRepository).then(() => {
         renameTask={(id, newName) => renameTask.execute(id, newName)}
         toggleTaskCompletion={(id) => toggleTaskCompletion.execute(id)}
         countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
-        listTasks={(tasks, filterName) => listTasks.execute(tasks, filterName)}
+        filterTasks={(tasks, filterName) => filterTasks.execute(tasks, filterName)}
         filterNames={filterNames}
       />
     </React.StrictMode>,

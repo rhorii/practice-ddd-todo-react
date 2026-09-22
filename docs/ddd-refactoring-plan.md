@@ -57,8 +57,10 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
 
 ## Phase 3: アプリケーション層
 
-- [ ] **T3-1** ユースケースを切り出す
-      `AddTask` / `RenameTask` / `ToggleTaskCompletion` / `DeleteTask` / `ListTasks`
+- [x] **T3-1** ユースケースの命名と粒度を見直す
+      切り出し自体は T1-5 と T2-2 で済んでいたため、見直しの回に読み替えた。
+      `ListTasks` → `FilterTasks`（一覧を読み出すのは `LoadTasks`）、
+      `ListTaskFilters` → `taskFilterNames()`（ユースケースではないため関数に降格）
 - [ ] **T3-2** UI へはドメインオブジェクトではなく DTO を返す
 - [ ] **T3-3** 組み立てを `main.tsx`（composition root）に集約し、Context でユースケースを注入する
 

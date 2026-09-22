@@ -3,7 +3,7 @@ import Form from "./Form";
 import FilterButton from "./FilterButton";
 import TaskItem from "./TaskItem";
 import { InvalidTaskNameError } from "../application/InvalidTaskNameError";
-import type { TaskFilterName } from "../application/ListTaskFilters";
+import type { TaskFilterName } from "../application/taskFilterNames";
 import type { TaskDto } from "../application/TaskDto";
 
 // タスク一覧に対する操作はすべて外から渡される。
@@ -18,7 +18,7 @@ type AppProps = {
   // 絞り込みと件数は保存内容を変えない「見せ方」の操作なので、
   // 画面が既に持っている一覧に対して同期的に適用する。
   countRemainingTasks: (tasks: readonly TaskDto[]) => number;
-  listTasks: (
+  filterTasks: (
     tasks: readonly TaskDto[],
     filterName: TaskFilterName
   ) => TaskDto[];
@@ -87,7 +87,7 @@ function App(props: AppProps) {
   }
 
   const visibleTaskItems = props
-    .listTasks(tasks, filter)
+    .filterTasks(tasks, filter)
     .map((task) => (
       <TaskItem
         id={task.id}

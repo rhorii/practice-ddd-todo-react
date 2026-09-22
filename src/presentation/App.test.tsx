@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { AddTask } from "../application/AddTask";
 import { CountRemainingTasks } from "../application/CountRemainingTasks";
 import { DeleteTask } from "../application/DeleteTask";
-import { ListTaskFilters } from "../application/ListTaskFilters";
-import { ListTasks } from "../application/ListTasks";
+import { taskFilterNames } from "../application/taskFilterNames";
+import { FilterTasks } from "../application/FilterTasks";
 import { LoadTasks } from "../application/LoadTasks";
 import { RenameTask } from "../application/RenameTask";
 import { toTaskList } from "../application/TaskMapper";
@@ -51,7 +51,7 @@ async function renderApp() {
   const renameTask = new RenameTask(repository);
   const toggleTaskCompletion = new ToggleTaskCompletion(repository);
   const countRemainingTasks = new CountRemainingTasks();
-  const listTasks = new ListTasks();
+  const filterTasks = new FilterTasks();
 
   const rendered = render(
     <App
@@ -61,8 +61,8 @@ async function renderApp() {
       renameTask={(id, newName) => renameTask.execute(id, newName)}
       toggleTaskCompletion={(id) => toggleTaskCompletion.execute(id)}
       countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
-      listTasks={(tasks, filterName) => listTasks.execute(tasks, filterName)}
-      filterNames={new ListTaskFilters().execute()}
+      filterTasks={(tasks, filterName) => filterTasks.execute(tasks, filterName)}
+      filterNames={taskFilterNames()}
     />
   );
 

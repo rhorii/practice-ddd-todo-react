@@ -1,4 +1,4 @@
-import { ListTasks } from "./ListTasks";
+import { FilterTasks } from "./FilterTasks";
 import type { TaskDto } from "./TaskDto";
 
 const TASKS: TaskDto[] = [
@@ -7,11 +7,12 @@ const TASKS: TaskDto[] = [
   { id: "task-3", name: "Repeat", completed: false },
 ];
 
-const list = (filterName: string) => new ListTasks().execute(TASKS, filterName);
+const filter = (filterName: string) =>
+  new FilterTasks().execute(TASKS, filterName);
 
-describe("ListTasks", () => {
+describe("FilterTasks", () => {
   it("All はすべての Task を返す", () => {
-    expect(list("All").map((task) => task.name)).toEqual([
+    expect(filter("All").map((task) => task.name)).toEqual([
       "Eat",
       "Sleep",
       "Repeat",
@@ -19,22 +20,22 @@ describe("ListTasks", () => {
   });
 
   it("Active は未完了の Task だけを返す", () => {
-    expect(list("Active").map((task) => task.name)).toEqual([
+    expect(filter("Active").map((task) => task.name)).toEqual([
       "Sleep",
       "Repeat",
     ]);
   });
 
   it("Completed は完了した Task だけを返す", () => {
-    expect(list("Completed").map((task) => task.name)).toEqual(["Eat"]);
+    expect(filter("Completed").map((task) => task.name)).toEqual(["Eat"]);
   });
 
   it("知らないフィルタ名は受け付けない", () => {
-    expect(() => list("Archived")).toThrow("不明なフィルタです: Archived");
+    expect(() => filter("Archived")).toThrow("不明なフィルタです: Archived");
   });
 
   it("元のリストを書き換えない", () => {
-    list("Completed");
+    filter("Completed");
 
     expect(TASKS).toHaveLength(3);
   });
