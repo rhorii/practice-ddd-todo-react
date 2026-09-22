@@ -185,19 +185,23 @@ describe("タスク名の変更 (rename)", () => {
     expect(screen.queryByRole("checkbox", { name: "Eat" })).not.toBeInTheDocument();
   });
 
-  it("変更フォームの入力欄は現在の名前ではなく空で始まる", async () => {
+  it("変更フォームの入力欄に今の名前が入っている", async () => {
     const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
 
-    expect(screen.getByRole("textbox", { name: "New name for Eat" })).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "New name for Eat" })).toHaveValue(
+      "Eat"
+    );
   });
 
   it("Save を押すと新しい名前で置き換える", async () => {
     const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
-    await user.type(screen.getByRole("textbox", { name: "New name for Eat" }), "Brunch");
+    const nameField = screen.getByRole("textbox", { name: "New name for Eat" });
+    await user.clear(nameField);
+    await user.type(nameField, "Brunch");
     await user.click(saveButton("Eat"));
 
     expect(screen.getByRole("checkbox", { name: "Brunch" })).toBeInTheDocument();
@@ -209,7 +213,9 @@ describe("タスク名の変更 (rename)", () => {
     const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
-    await user.type(screen.getByRole("textbox", { name: "New name for Eat" }), "Brunch");
+    const nameField = screen.getByRole("textbox", { name: "New name for Eat" });
+    await user.clear(nameField);
+    await user.type(nameField, "Brunch");
     await user.click(cancelButton("Eat"));
 
     expect(screen.getByRole("checkbox", { name: "Eat" })).toBeInTheDocument();
@@ -313,6 +319,7 @@ describe("空の名前は受け付けない", () => {
     const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
+    await user.clear(screen.getByRole("textbox", { name: "New name for Eat" }));
     await user.click(saveButton("Eat"));
 
     expect(screen.getByRole("checkbox", { name: "Eat" })).toBeInTheDocument();
@@ -334,10 +341,9 @@ describe("名前の正規化", () => {
     const { user } = await renderApp();
 
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
-    await user.type(
-      screen.getByRole("textbox", { name: "New name for Eat" }),
-      "   Brunch   "
-    );
+    const nameField = screen.getByRole("textbox", { name: "New name for Eat" });
+    await user.clear(nameField);
+    await user.type(nameField, "   Brunch   ");
     await user.click(saveButton("Eat"));
 
     expect(screen.getByRole("checkbox", { name: "Brunch" })).toBeInTheDocument();

@@ -5,14 +5,16 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
+import type { TaskDto } from "../application/TaskDto";
 
+// Task そのものを受け取る。項目を分解して渡すと、表示する内容が増えるたびに
+// props も増えてしまう。
 type TaskItemProps = {
-  id: string;
-  name: string;
-  completed: boolean;
-  toggleTaskCompletion: (id: string) => void;
-  deleteTask: (id: string) => void;
-  renameTask: (id: string, newName: string) => void;
+  task: TaskDto;
+  // 操作はいずれも保存を伴うため完了を待てる形にしておく。
+  toggleTaskCompletion: (id: string) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  renameTask: (id: string, newName: string) => Promise<void>;
 };
 
 function usePrevious<T>(value: T): T | null {
@@ -24,6 +26,8 @@ function usePrevious<T>(value: T): T | null {
 }
 
 function TaskItem(props: TaskItemProps) {
+  const { task } = props;
+
   const [isRenaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState("");
 
@@ -32,28 +36,33 @@ function TaskItem(props: TaskItemProps) {
 
   const wasRenaming = usePrevious(isRenaming);
 
+  function startRenaming() {
+    // 今の名前を入れておく。名前の変更は全部打ち直すより
+    // 一部を直したいことのほうが多い。
+    setNewName(task.name);
+    setRenaming(true);
+  }
+
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     setNewName(event.target.value);
   }
 
-  // NOTE: As written, this function has a bug: it doesn't prevent the user
-  // from submitting an empty form. This is left as an exercise for developers
-  // working through MDN's React tutorial.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    props.renameTask(props.id, newName);
-    setNewName("");
+    void props.renameTask(task.id, newName);
     setRenaming(false);
   }
 
+  // ボタンの名前は aria-label で明示する。visually-hidden な span を並べるだけだと
+  // 支援技術に読まれる名前で語の区切りが失われ、"ShowAlltasks" のように繋がる。
   const renamingTemplate = (
     <form className="stack-small" onSubmit={handleSubmit}>
       <div className="form-group">
-        <label className="todo-label" htmlFor={props.id}>
-          New name for {props.name}
+        <label className="todo-label" htmlFor={task.id}>
+          New name for {task.name}
         </label>
         <input
-          id={props.id}
+          id={task.id}
           className="todo-text"
           type="text"
           value={newName}
@@ -65,13 +74,15 @@ function TaskItem(props: TaskItemProps) {
         <button
           type="button"
           className="btn todo-cancel"
+          aria-label={`Cancel renaming ${task.name}`}
           onClick={() => setRenaming(false)}>
           Cancel
-          <span className="visually-hidden">renaming {props.name}</span>
         </button>
-        <button type="submit" className="btn btn__primary todo-edit">
+        <button
+          type="submit"
+          className="btn btn__primary todo-edit"
+          aria-label={`Save new name for ${task.name}`}>
           Save
-          <span className="visually-hidden">new name for {props.name}</span>
         </button>
       </div>
     </form>
@@ -81,30 +92,30 @@ function TaskItem(props: TaskItemProps) {
     <div className="stack-small">
       <div className="c-cb">
         <input
-          id={props.id}
+          id={task.id}
           type="checkbox"
-          defaultChecked={props.completed}
-          onChange={() => props.toggleTaskCompletion(props.id)}
+          defaultChecked={task.completed}
+          onChange={() => void props.toggleTaskCompletion(task.id)}
         />
-        <label className="todo-label" htmlFor={props.id}>
-          {props.name}
+        <label className="todo-label" htmlFor={task.id}>
+          {task.name}
         </label>
       </div>
       <div className="btn-group">
         <button
           type="button"
           className="btn"
-          onClick={() => {
-            setRenaming(true);
-          }}
+          aria-label={`Edit ${task.name}`}
+          onClick={startRenaming}
           ref={renameButtonRef}>
-          Edit <span className="visually-hidden">{props.name}</span>
+          Edit
         </button>
         <button
           type="button"
           className="btn btn__danger"
-          onClick={() => props.deleteTask(props.id)}>
-          Delete <span className="visually-hidden">{props.name}</span>
+          aria-label={`Delete ${task.name}`}
+          onClick={() => void props.deleteTask(task.id)}>
+          Delete
         </button>
       </div>
     </div>

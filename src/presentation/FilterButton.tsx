@@ -1,5 +1,5 @@
 // フィルタ名を型引数にしておくことで、呼び出し側が持つ厳密な名前の型
-// (App の FilterName) をキャストなしでそのまま渡せる。
+// (App の TaskFilterName) をキャストなしでそのまま渡せる。
 type FilterButtonProps<TName extends string> = {
   name: TName;
   isPressed: boolean;
@@ -11,12 +11,13 @@ function FilterButton<TName extends string>(props: FilterButtonProps<TName>) {
     <button
       type="button"
       className="btn toggle-btn"
+      // visually-hidden な span を並べるだけだと、支援技術に読まれる名前で
+      // 語の区切りが失われ "ShowAlltasks" のように繋がってしまう。
+      aria-label={`Show ${props.name} tasks`}
       aria-pressed={props.isPressed}
       onClick={() => props.setFilter(props.name)}
     >
-      <span className="visually-hidden">Show </span>
-      <span>{props.name}</span>
-      <span className="visually-hidden"> tasks</span>
+      {props.name}
     </button>
   );
 }

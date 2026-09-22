@@ -40,9 +40,7 @@ function App() {
 
   const visibleTaskItems = view.visibleTasks.map((task) => (
     <TaskItem
-      id={task.id}
-      name={task.name}
-      completed={task.completed}
+      task={task}
       key={task.id}
       toggleTaskCompletion={toggleTaskCompletion}
       deleteTask={deleteTask}
