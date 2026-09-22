@@ -321,9 +321,95 @@ describe("空の名前は受け付けない", () => {
     await user.click(screen.getByRole("button", { name: "Edit Eat" }));
     await user.clear(screen.getByRole("textbox", { name: "New name for Eat" }));
     await user.click(saveButton("Eat"));
+    await user.click(cancelButton("Eat"));
 
     expect(screen.getByRole("checkbox", { name: "Eat" })).toBeInTheDocument();
     expect(taskItems()).toHaveLength(3);
+  });
+});
+
+// 受け付けられなかった理由をユーザーに伝える。
+// ドメインは理由 (reason) だけを返し、文言は presentation 層が組み立てる。
+describe("入力が受け付けられなかったときの表示", () => {
+  const EMPTY_NAME_MESSAGE = "Please enter a name for the task.";
+
+  describe("追加", () => {
+    it("理由を伝える", async () => {
+      const { user } = await renderApp();
+
+      await user.click(screen.getByRole("button", { name: "Add" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        EMPTY_NAME_MESSAGE
+      );
+    });
+
+    it("入力欄にエラーがあることを伝える", async () => {
+      const { user } = await renderApp();
+
+      await user.click(screen.getByRole("button", { name: "Add" }));
+
+      expect(newTaskInput()).toHaveAccessibleDescription(EMPTY_NAME_MESSAGE);
+      expect(newTaskInput()).toBeInvalid();
+    });
+
+    it("入力し直すと表示が消える", async () => {
+      const { user } = await renderApp();
+
+      await user.click(screen.getByRole("button", { name: "Add" }));
+      await user.type(newTaskInput(), "Walk");
+
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(newTaskInput()).toBeValid();
+    });
+
+    it("長すぎる名前には別の理由を伝える", async () => {
+      const { user } = await renderApp();
+
+      await user.type(newTaskInput(), "a".repeat(101));
+      await user.click(screen.getByRole("button", { name: "Add" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Task names must be 100 characters or fewer."
+      );
+    });
+
+    it("受け付けられなかった入力は消さない", async () => {
+      const { user } = await renderApp();
+
+      await user.type(newTaskInput(), "a".repeat(101));
+      await user.click(screen.getByRole("button", { name: "Add" }));
+
+      expect(newTaskInput()).toHaveValue("a".repeat(101));
+    });
+  });
+
+  describe("名前の変更", () => {
+    it("理由を伝える", async () => {
+      const { user } = await renderApp();
+
+      await user.click(screen.getByRole("button", { name: "Edit Eat" }));
+      await user.clear(screen.getByRole("textbox", { name: "New name for Eat" }));
+      await user.click(saveButton("Eat"));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        EMPTY_NAME_MESSAGE
+      );
+    });
+
+    it("直して出し直せるようフォームを閉じない", async () => {
+      const { user } = await renderApp();
+
+      await user.click(screen.getByRole("button", { name: "Edit Eat" }));
+      const nameField = screen.getByRole("textbox", { name: "New name for Eat" });
+      await user.clear(nameField);
+      await user.click(saveButton("Eat"));
+
+      await user.type(nameField, "Brunch");
+      await user.click(saveButton("Eat"));
+
+      expect(screen.getByRole("checkbox", { name: "Brunch" })).toBeInTheDocument();
+    });
   });
 });
 

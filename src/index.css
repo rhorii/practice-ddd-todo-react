@@ -294,3 +294,12 @@ body {
   opacity: 1;
 }
 /* End checkbox styles */
+
+/* 入力が受け付けられなかった理由の表示 */
+.form-error {
+  margin: 0.5rem 0 0 0;
+  padding: 0;
+  color: #b00020;
+  font-size: 1.4rem;
+  font-family: Arial, sans-serif;
+}

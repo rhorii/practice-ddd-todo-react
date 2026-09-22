@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { InvalidTaskNameError } from "../application/InvalidTaskNameError";
+import {
+  InvalidTaskNameError,
+  type InvalidTaskNameReason,
+} from "../application/InvalidTaskNameError";
 import type { TaskDto } from "../application/TaskDto";
 import { useTaskUseCases } from "./TaskUseCasesContext";
 
@@ -13,11 +16,22 @@ import { useTaskUseCases } from "./TaskUseCasesContext";
  * 判断はここにも置かない。何をするかはユースケースが、ルールはドメインが持つ。
  * このフックの仕事は、非同期の結果を React の状態に映すことだけ。
  */
+/**
+ * 名前を伴う操作の結果。
+ *
+ * 名前が受け付けられないことは異常ではなく、ユーザー入力に対して起こって当然の
+ * 結果なので、例外ではなく戻り値で伝える。呼び出し側は accepted を見ないと
+ * reason を取り出せないため、失敗の扱いを書き忘れられない。
+ */
+export type TaskNameResult =
+  | { accepted: true }
+  | { accepted: false; reason: InvalidTaskNameReason };
+
 export type Tasks = {
   tasks: TaskDto[];
-  addTask: (name: string) => Promise<void>;
+  addTask: (name: string) => Promise<TaskNameResult>;
   deleteTask: (id: string) => Promise<void>;
-  renameTask: (id: string, newName: string) => Promise<void>;
+  renameTask: (id: string, newName: string) => Promise<TaskNameResult>;
   toggleTaskCompletion: (id: string) => Promise<void>;
 };
 
@@ -43,11 +57,10 @@ export function useTasks(): Tasks {
   }, [loadTasks]);
 
   const addTask = useCallback(
-    async (name: string) => {
-      await ignoringInvalidName(async () => {
+    async (name: string): Promise<TaskNameResult> =>
+      reportingInvalidName(async () => {
         setTasks(await useCases.addTask(name));
-      });
-    },
+      }),
     [useCases]
   );
 
@@ -59,11 +72,10 @@ export function useTasks(): Tasks {
   );
 
   const renameTask = useCallback(
-    async (id: string, newName: string) => {
-      await ignoringInvalidName(async () => {
+    async (id: string, newName: string): Promise<TaskNameResult> =>
+      reportingInvalidName(async () => {
         setTasks(await useCases.renameTask(id, newName));
-      });
-    },
+      }),
     [useCases]
   );
 
@@ -78,19 +90,23 @@ export function useTasks(): Tasks {
 }
 
 /**
- * 不正な名前が入力されたときは、その操作を行わない。
+ * 名前の不変条件に反した場合を、例外ではなく結果として返す。
  *
- * T4-3 でユーザーにエラーメッセージを表示する。それまでは入力を無視するに留める。
  * 不変条件違反以外の例外は握りつぶさず、そのまま投げ直す。
+ * ユーザー入力の不備と、プログラムの不具合を混同しないため。
  */
-async function ignoringInvalidName(
+async function reportingInvalidName(
   operation: () => Promise<void>
-): Promise<void> {
+): Promise<TaskNameResult> {
   try {
     await operation();
+
+    return { accepted: true };
   } catch (error) {
-    if (!(error instanceof InvalidTaskNameError)) {
-      throw error;
+    if (error instanceof InvalidTaskNameError) {
+      return { accepted: false, reason: error.reason };
     }
+
+    throw error;
   }
 }

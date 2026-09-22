@@ -5,7 +5,9 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
+import type { InvalidTaskNameReason } from "../application/InvalidTaskNameError";
 import type { TaskDto } from "../application/TaskDto";
+import { taskNameErrorMessage } from "./taskNameErrorMessage";
 
 // Task そのものを受け取る。項目を分解して渡すと、表示する内容が増えるたびに
 // props も増えてしまう。
@@ -14,7 +16,13 @@ type TaskItemProps = {
   // 操作はいずれも保存を伴うため完了を待てる形にしておく。
   toggleTaskCompletion: (id: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
-  renameTask: (id: string, newName: string) => Promise<void>;
+  // 名前が受け付けられなければ、その理由が返る。
+  renameTask: (
+    id: string,
+    newName: string
+  ) => Promise<
+    { accepted: true } | { accepted: false; reason: InvalidTaskNameReason }
+  >;
 };
 
 function usePrevious<T>(value: T): T | null {
@@ -30,6 +38,10 @@ function TaskItem(props: TaskItemProps) {
 
   const [isRenaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState("");
+  const [rejectedReason, setRejectedReason] =
+    useState<InvalidTaskNameReason | null>(null);
+
+  const errorId = `${task.id}-error`;
 
   const renameFieldRef = useRef<HTMLInputElement>(null);
   const renameButtonRef = useRef<HTMLButtonElement>(null);
@@ -40,17 +52,27 @@ function TaskItem(props: TaskItemProps) {
     // 今の名前を入れておく。名前の変更は全部打ち直すより
     // 一部を直したいことのほうが多い。
     setNewName(task.name);
+    setRejectedReason(null);
     setRenaming(true);
   }
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     setNewName(event.target.value);
+    setRejectedReason(null);
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void props.renameTask(task.id, newName);
-    setRenaming(false);
+
+    const result = await props.renameTask(task.id, newName);
+
+    if (result.accepted) {
+      setRenaming(false);
+      return;
+    }
+
+    // 受け付けられなかったときはフォームを閉じない。直して出し直せるようにするため。
+    setRejectedReason(result.reason);
   }
 
   // ボタンの名前は aria-label で明示する。visually-hidden な span を並べるだけだと
@@ -68,7 +90,14 @@ function TaskItem(props: TaskItemProps) {
           value={newName}
           onChange={handleChange}
           ref={renameFieldRef}
+          aria-invalid={rejectedReason !== null}
+          aria-describedby={rejectedReason === null ? undefined : errorId}
         />
+        {rejectedReason !== null && (
+          <p id={errorId} className="form-error" role="alert">
+            {taskNameErrorMessage(rejectedReason)}
+          </p>
+        )}
       </div>
       <div className="btn-group">
         <button
