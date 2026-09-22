@@ -5,6 +5,7 @@ import TaskItem from "./TaskItem";
 import { InvalidTaskNameError } from "../application/InvalidTaskNameError";
 import type { TaskFilterName } from "../application/taskFilterNames";
 import type { TaskDto } from "../application/TaskDto";
+import type { TaskListView } from "../application/TaskListView";
 
 // タスク一覧に対する操作はすべて外から渡される。
 // App は「どう変えるか」も「どこに保存されるか」も知らず、
@@ -15,13 +16,12 @@ type AppProps = {
   deleteTask: (id: string) => Promise<TaskDto[]>;
   renameTask: (id: string, newName: string) => Promise<TaskDto[]>;
   toggleTaskCompletion: (id: string) => Promise<TaskDto[]>;
-  // 絞り込みと件数は保存内容を変えない「見せ方」の操作なので、
+  // 表示に必要な一式の組み立て。保存内容を変えない「見せ方」の操作なので、
   // 画面が既に持っている一覧に対して同期的に適用する。
-  countRemainingTasks: (tasks: readonly TaskDto[]) => number;
-  filterTasks: (
+  buildTaskListView: (
     tasks: readonly TaskDto[],
     filterName: TaskFilterName
-  ) => TaskDto[];
+  ) => TaskListView;
   filterNames: readonly TaskFilterName[];
 };
 
@@ -86,8 +86,9 @@ function App(props: AppProps) {
     });
   }
 
-  const visibleTaskItems = props
-    .filterTasks(tasks, filter)
+  const view: TaskListView = props.buildTaskListView(tasks, filter);
+
+  const visibleTaskItems = view.visibleTasks
     .map((task) => (
       <TaskItem
         id={task.id}
@@ -117,9 +118,8 @@ function App(props: AppProps) {
 
   // remaining が何を指すかは docs/ubiquitous-language.md にあるドメインの取り決め。
   // 数え方そのものは TaskList が知っており、App は結果を表示するだけ。
-  const remainingCount = props.countRemainingTasks(tasks);
-  const tasksNoun = remainingCount !== 1 ? "tasks" : "task";
-  const headingText = `${remainingCount} ${tasksNoun} remaining`;
+  const tasksNoun = view.remainingCount !== 1 ? "tasks" : "task";
+  const headingText = `${view.remainingCount} ${tasksNoun} remaining`;
 
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
   const prevTaskLength = usePrevious(tasks.length);

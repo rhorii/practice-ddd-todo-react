@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AddTask } from "../application/AddTask";
+import { BuildTaskListView } from "../application/BuildTaskListView";
 import { CountRemainingTasks } from "../application/CountRemainingTasks";
 import { DeleteTask } from "../application/DeleteTask";
 import { taskFilterNames } from "../application/taskFilterNames";
@@ -27,8 +28,10 @@ async function openApp(repository: TaskRepository) {
   const deleteTask = new DeleteTask(repository);
   const renameTask = new RenameTask(repository);
   const toggleTaskCompletion = new ToggleTaskCompletion(repository);
-  const countRemainingTasks = new CountRemainingTasks();
-  const filterTasks = new FilterTasks();
+  const buildTaskListView = new BuildTaskListView(
+    new FilterTasks(),
+    new CountRemainingTasks()
+  );
 
   const rendered = render(
     <App
@@ -37,8 +40,9 @@ async function openApp(repository: TaskRepository) {
       deleteTask={(id) => deleteTask.execute(id)}
       renameTask={(id, newName) => renameTask.execute(id, newName)}
       toggleTaskCompletion={(id) => toggleTaskCompletion.execute(id)}
-      countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
-      filterTasks={(tasks, filterName) => filterTasks.execute(tasks, filterName)}
+      buildTaskListView={(tasks, filterName) =>
+        buildTaskListView.execute(tasks, filterName)
+      }
       filterNames={taskFilterNames()}
     />
   );

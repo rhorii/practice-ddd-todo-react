@@ -13,6 +13,10 @@
 | **TaskList** | Task の集まり。単なる配列ではなく、集合としての振る舞いを持つ | `TaskList` |
 | **TaskFilter** | TaskList から表示対象を選び出す条件 | `TaskFilter` |
 
+なお **TaskListView** は上の並びには入らない。これはドメインの概念ではなく、
+「タスク一覧の画面が表示に必要とするもの」という UI 側の関心事を表す型であり、
+application 層に置かれている。
+
 ## Task の状態と操作
 
 | 用語 | 意味 |
@@ -59,6 +63,7 @@ Completed フィルタを選んでいても「残り」の意味は変わらな�
 | **ToggleTaskCompletion** | Task の完了状態を切り替える | する |
 | **FilterTasks** | 既に読み込まれた一覧を、指定のフィルタで絞り込む | しない |
 | **CountRemainingTasks** | 既に読み込まれた一覧から remaining を数える | しない |
+| **BuildTaskListView** | 画面が表示に必要とする一式（TaskListView）を組み立てる | しない |
 
 ### 読み書きする操作としない操作を分けている理由
 

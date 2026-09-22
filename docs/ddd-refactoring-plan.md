@@ -61,7 +61,8 @@ MDN の todo-react をベースに、ドメイン駆動設計の考え方に沿�
       切り出し自体は T1-5 と T2-2 で済んでいたため、見直しの回に読み替えた。
       `ListTasks` → `FilterTasks`（一覧を読み出すのは `LoadTasks`）、
       `ListTaskFilters` → `taskFilterNames()`（ユースケースではないため関数に降格）
-- [ ] **T3-2** UI へはドメインオブジェクトではなく DTO を返す
+- [x] **T3-2** UI へはドメインオブジェクトではなく DTO を返す
+      あわせて画面が必要とする一式を `TaskListView` にまとめた
 - [ ] **T3-3** 組み立てを `main.tsx`（composition root）に集約し、Context でユースケースを注入する
 
 ## Phase 4: プレゼンテーション層を薄くする

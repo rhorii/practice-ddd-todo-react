@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './presentation/App'
 import { AddTask } from './application/AddTask'
+import { BuildTaskListView } from './application/BuildTaskListView'
 import { CountRemainingTasks } from './application/CountRemainingTasks'
 import { DeleteTask } from './application/DeleteTask'
 import { taskFilterNames } from './application/taskFilterNames'
@@ -40,8 +41,10 @@ const addTask = new AddTask(taskRepository, new NanoidTaskIdGenerator());
 const deleteTask = new DeleteTask(taskRepository);
 const renameTask = new RenameTask(taskRepository);
 const toggleTaskCompletion = new ToggleTaskCompletion(taskRepository);
-const countRemainingTasks = new CountRemainingTasks();
-const filterTasks = new FilterTasks();
+const buildTaskListView = new BuildTaskListView(
+  new FilterTasks(),
+  new CountRemainingTasks()
+);
 const filterNames = taskFilterNames();
 
 const rootElement = document.getElementById('root');
@@ -58,8 +61,9 @@ void seedInitialTasks(taskRepository).then(() => {
         deleteTask={(id) => deleteTask.execute(id)}
         renameTask={(id, newName) => renameTask.execute(id, newName)}
         toggleTaskCompletion={(id) => toggleTaskCompletion.execute(id)}
-        countRemainingTasks={(tasks) => countRemainingTasks.execute(tasks)}
-        filterTasks={(tasks, filterName) => filterTasks.execute(tasks, filterName)}
+        buildTaskListView={(tasks, filterName) =>
+          buildTaskListView.execute(tasks, filterName)
+        }
         filterNames={filterNames}
       />
     </React.StrictMode>,
